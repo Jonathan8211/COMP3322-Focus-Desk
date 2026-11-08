@@ -77,3 +77,7 @@ export const getNotes = () => request('/notes');
 export const createNote = (data = {}) => request('/notes', json('POST', data));
 export const updateNote = (id, data) => request(`/notes/${id}`, json('PATCH', data));
 export const deleteNote = (id) => request(`/notes/${id}`, { method: 'DELETE' });
+export const getDailyEntries = (from, to) => request(`/daily-entries?${new URLSearchParams({ from, to })}`);
+export const getDailyEntry = (date) => request(`/daily-entries/${date}`);
+export const saveDailyEntry = (date, data) => request(`/daily-entries/${date}`, json('PUT', data));
+export const deleteDailyEntry = (date) => request(`/daily-entries/${date}`, { method: 'DELETE' });

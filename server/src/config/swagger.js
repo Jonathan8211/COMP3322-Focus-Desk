@@ -78,7 +78,7 @@ const options = {
       },
     },
   },
-  apis: ["authRoutes.js", "taskRoutes.js", "checklistRoutes.js", "projectRoutes.js", "noteRoutes.js"].map((file) => path.join(__dirname, "../routes", file)),
+  apis: ["authRoutes.js", "taskRoutes.js", "checklistRoutes.js", "projectRoutes.js", "noteRoutes.js", "dailyEntryRoutes.js"].map((file) => path.join(__dirname, "../routes", file)),
 };
 
 module.exports = swaggerJsdoc(options);

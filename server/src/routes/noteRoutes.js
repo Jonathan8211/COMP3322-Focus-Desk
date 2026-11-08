@@ -7,6 +7,16 @@ const noteService = require("../services/noteService");
 
 router.use(auth);
 
+const validateNoteId = (req, res, next) => {
+  const value = req.params.id;
+  const id = Number(value);
+  if (!/^\d+$/.test(value) || !Number.isSafeInteger(id) || id <= 0) {
+    return res.status(400).json({ success: false, message: 'Note ID must be a positive integer.' });
+  }
+  req.noteId = id;
+  next();
+};
+
 /**
  * @swagger
  * tags:
@@ -69,22 +79,22 @@ router.post("/", validate(noteValidators.createNote), async (req, res, next) => 
  *         required: true
  *         schema: { type: integer }
  *     responses:
- *       200:
+ *       204:
  *         description: Note deleted
  */
-router.patch("/:id", validate(noteValidators.updateNote), async (req, res, next) => {
+router.patch("/:id", validateNoteId, validate(noteValidators.updateNote), async (req, res, next) => {
   try {
-    const data = await noteService.updateNote(req.params.id, req.user.id, req.body);
+    const data = await noteService.updateNote(req.noteId, req.user.id, req.body);
     res.json({ success: true, data });
   } catch (err) {
     next(err);
   }
 });
 
-router.delete("/:id", async (req, res, next) => {
+router.delete("/:id", validateNoteId, async (req, res, next) => {
   try {
-    await noteService.deleteNote(req.params.id, req.user.id);
-    res.json({ success: true });
+    await noteService.deleteNote(req.noteId, req.user.id);
+    res.status(204).send();
   } catch (err) {
     next(err);
   }

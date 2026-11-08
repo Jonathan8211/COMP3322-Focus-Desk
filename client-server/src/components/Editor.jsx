@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Underline from "@tiptap/extension-underline";
@@ -39,7 +40,7 @@ const ToolbarButton = ({ onClick, active, title, children }) => (
 export default function Editor({ content, onChange, placeholder = "Start typing here..." }) {
   const editor = useEditor({
     extensions: [
-      StarterKit,
+      StarterKit.configure({ underline: false }),
       Underline,
       TextStyle,
       TextAlign.configure({ types: ["heading", "paragraph"] }),
@@ -54,6 +55,10 @@ export default function Editor({ content, onChange, placeholder = "Start typing 
       },
     },
   });
+
+  useEffect(() => {
+    if (editor && editor.getHTML() !== content) editor.commands.setContent(content || "", { emitUpdate: false });
+  }, [editor, content]);
 
   if (!editor) return null;
 

@@ -12,13 +12,10 @@ import NotionPages from "./pages/NotionPages";
 import Settings from "./pages/Settings";
 import Sidebar from "./components/Sidebar";
 import TaskDetail from "./pages/TaskDetail";
+import DailyJournal from "./pages/DailyJournal";
 import { updateTask, deleteTask, logoutUser } from "./services/api";
 import { useTasks } from "./contexts/useTasks";
 import { useAuth } from "./contexts/useAuth";
-
-function Journal() {
-  return <section className="p-8"><h1 className="text-2xl font-bold">Daily Journal</h1><p className="text-gray-500 mt-3">Your daily reflection space is being prepared.</p></section>;
-}
 
 function Credits() {
   return <section className="p-8"><h1 className="text-2xl font-bold">About FocusDesk</h1><p className="text-gray-500 mt-3">A calm space to plan tasks, projects, notes, and daily reflections.</p></section>;
@@ -29,8 +26,10 @@ export default function App() {
   const { user, loading, signOut, updateUser } = useAuth();
   const { tasks, stats, loading: tasksLoading, error: tasksError, loadAllTasks } = useTasks();
   const [logoutError, setLogoutError] = useState("");
+  const [hasUnsavedText, setHasUnsavedText] = useState(false);
   const authenticated = Boolean(user);
   const logout = async () => {
+    if (hasUnsavedText && !window.confirm('You have unsaved text. Discard it and sign out?')) return;
     const result = await logoutUser();
     if (!result.success) {
       setLogoutError(result.message || "Could not sign out.");
@@ -60,8 +59,8 @@ export default function App() {
       <Route path="/table" element={<TableView tasks={tasks} onTasksChanged={loadAllTasks} timezone={user?.timezone} />} />
       <Route path="/completed" element={<Completed tasks={tasks} onToggle={toggle} onDelete={remove} />} />
       <Route path="/calendar" element={<CalendarView tasks={tasks} timezone={user?.timezone} />} />
-      <Route path="/notes" element={<NotionPages />} />
-      <Route path="/journal" element={<Journal />} />
+      <Route path="/notes" element={<NotionPages onDirtyChange={setHasUnsavedText} />} />
+      <Route path="/journal" element={<DailyJournal timezone={user?.timezone} tasks={tasks} onDirtyChange={setHasUnsavedText} />} />
       <Route path="/settings" element={<Settings user={user} onUserUpdated={updateUser} />} />
       <Route path="/credits" element={<Credits />} />
     </Route>
