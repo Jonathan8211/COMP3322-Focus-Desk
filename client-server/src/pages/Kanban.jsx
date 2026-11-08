@@ -15,6 +15,8 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import { updateTask } from "../services/api";
 import { CalendarDays, Columns3 } from "lucide-react";
+import { Link } from "react-router-dom";
+import ChecklistProgress from "../components/ChecklistProgress";
 import { dateOnly, formatDateOnly, todayDateOnly } from "../utils/dateOnly";
 
 const COLUMNS = [
@@ -52,7 +54,7 @@ function TaskCard({ task, timezone }) {
       {...listeners}
       className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm p-3 cursor-grab active:cursor-grabbing select-none hover:shadow-md transition-shadow"
     >
-      <p className="text-sm text-gray-800 dark:text-gray-100 font-medium mb-2 leading-snug">{task.title}</p>
+      <Link to={`/tasks/${task.id}`} className="block text-sm text-gray-800 dark:text-gray-100 font-medium mb-2 leading-snug hover:underline">{task.title}</Link>
       <div className="flex items-center gap-2 flex-wrap">
         <span className={`text-xs px-2 py-0.5 rounded-full ${p.bg} ${p.color}`}>
           {task.priority || "medium"}
@@ -68,6 +70,7 @@ function TaskCard({ task, timezone }) {
             {task.project}
           </span>
         )}
+        <ChecklistProgress task={task} />
       </div>
     </div>
   );

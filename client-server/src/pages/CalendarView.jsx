@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { Link } from "react-router-dom";
+import ChecklistProgress from "../components/ChecklistProgress";
 import { dateOnly, daysFromToday, todayDateOnly } from "../utils/dateOnly";
 
 const PRIORITY_COLOR = {
@@ -118,7 +120,8 @@ export default function CalendarView({ tasks, timezone }) {
               {selectedTasks.map((task) => (
                 <div key={task.id} className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm dark:shadow-none px-4 py-3 flex items-center gap-3">
                   <div className={`w-2 h-2 rounded-full flex-shrink-0 ${task.status === "completed" ? "bg-emerald-400" : "bg-amber-400"}`} />
-                  <span className={`text-sm flex-1 ${task.status === "completed" ? "line-through text-gray-300 dark:text-gray-600" : "text-gray-800 dark:text-gray-100"}`}>{task.title}</span>
+                  <Link to={`/tasks/${task.id}`} className={`text-sm flex-1 ${task.status === "completed" ? "line-through text-gray-300 dark:text-gray-600" : "text-gray-800 dark:text-gray-100"}`}>{task.title}</Link>
+                  <ChecklistProgress task={task} />
                   <span className={`text-xs px-2 py-0.5 rounded-full border ${PRIORITY_COLOR[task.priority || "medium"]}`}>{task.priority || "medium"}</span>
                 </div>
               ))}

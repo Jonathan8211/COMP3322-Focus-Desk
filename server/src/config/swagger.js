@@ -50,6 +50,8 @@ const options = {
             priority: { type: "string", enum: ["low", "medium", "high"], example: "high" },
             due_date: { type: "string", format: "date", example: "2026-07-31" },
             project: { type: "string", example: "Work" },
+            checklist_done: { type: "integer", example: 1 },
+            checklist_total: { type: "integer", example: 2 },
             created_at: { type: "string", format: "date-time" },
           },
         },
@@ -76,7 +78,7 @@ const options = {
       },
     },
   },
-  apis: ["authRoutes.js", "taskRoutes.js", "projectRoutes.js", "noteRoutes.js"].map((file) => path.join(__dirname, "../routes", file)),
+  apis: ["authRoutes.js", "taskRoutes.js", "checklistRoutes.js", "projectRoutes.js", "noteRoutes.js"].map((file) => path.join(__dirname, "../routes", file)),
 };
 
 module.exports = swaggerJsdoc(options);

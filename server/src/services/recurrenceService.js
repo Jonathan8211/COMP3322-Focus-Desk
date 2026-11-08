@@ -44,6 +44,12 @@ async function createNextOccurrence(connection, completedTask, timezone) {
       nextDue, completedTask.priority || 'medium', completedTask.project || null,
       recurrence, completedTask.id]
   );
+  await connection.query(
+    `INSERT INTO task_checklist_items (task_id, title, is_done, position)
+     SELECT ?, title, 0, position FROM task_checklist_items
+     WHERE task_id = ? ORDER BY position ASC, id ASC`,
+    [result.insertId, completedTask.id]
+  );
   const [[row]] = await connection.query('SELECT * FROM tasks WHERE id = ? AND user_id = ?', [result.insertId, completedTask.user_id]);
   return row;
 }

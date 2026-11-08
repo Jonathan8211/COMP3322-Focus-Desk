@@ -32,6 +32,22 @@ async function getTimezone(connection, userId) {
   return user?.timezone || 'UTC';
 }
 
+async function withChecklistCounts(connection, tasks) {
+  if (!tasks.length) return tasks;
+  const [rows] = await connection.query(
+    `SELECT task_id, COUNT(*) AS checklist_total,
+      COALESCE(SUM(is_done = 1), 0) AS checklist_done
+     FROM task_checklist_items WHERE task_id IN (?) GROUP BY task_id`,
+    [tasks.map((task) => task.id)]
+  );
+  const counts = new Map(rows.map((row) => [row.task_id, row]));
+  return tasks.map((task) => ({
+    ...task,
+    checklist_done: Number(counts.get(task.id)?.checklist_done || 0),
+    checklist_total: Number(counts.get(task.id)?.checklist_total || 0),
+  }));
+}
+
 const getAllTasks = async (req, res, next) => {
   try {
     const { page, limit, status, priority, project } = req.validatedQuery;
@@ -46,7 +62,7 @@ const getAllTasks = async (req, res, next) => {
       `SELECT * FROM tasks ${where} ORDER BY created_at DESC, id DESC LIMIT ? OFFSET ?`,
       [...params, limit, (page - 1) * limit]
     );
-    res.json({ success: true, data: tasks, pagination: { total, page, limit, totalPages: Math.ceil(total / limit) } });
+    res.json({ success: true, data: await withChecklistCounts(db, tasks), pagination: { total, page, limit, totalPages: Math.ceil(total / limit) } });
   } catch (error) { next(error); }
 };
 
@@ -56,7 +72,7 @@ const getTaskById = async (req, res, next) => {
     if (!taskId) throw invalidId();
     const [[task]] = await db.query('SELECT * FROM tasks WHERE id = ? AND user_id = ?', [taskId, req.user.id]);
     if (!task) throw notFound();
-    res.json({ success: true, data: task });
+    res.json({ success: true, data: (await withChecklistCounts(db, [task]))[0] });
   } catch (error) { next(error); }
 };
 

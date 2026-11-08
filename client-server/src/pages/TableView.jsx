@@ -11,6 +11,8 @@ import { updateTask, deleteTask } from "../services/api";
 import useDebounce from "../hooks/useDebounce";
 import { dateOnly, formatDateOnly, todayDateOnly } from "../utils/dateOnly";
 import { Check, TriangleAlert, X, Search } from "lucide-react";
+import { Link } from "react-router-dom";
+import ChecklistProgress from "../components/ChecklistProgress";
 
 const PRIORITY_CONFIG = {
   high:   { label: "High",   color: "text-red-500",     bg: "bg-red-50 dark:bg-red-900/20"     },
@@ -102,16 +104,18 @@ export default function TableView({ tasks, onTasksChanged, timezone }) {
             className="w-full bg-transparent border-b border-indigo-400 outline-none text-sm text-gray-800 dark:text-gray-100 py-0.5"
           />
         ) : (
-          <span
-            onClick={() => startEdit(row.id, "title", row.original.title)}
-            className={`text-sm cursor-pointer block truncate ${
-              row.original.status === "completed"
-                ? "line-through text-gray-400"
-                : "text-gray-800 dark:text-gray-100 hover:text-indigo-600"
-            }`}
-          >
-            {row.original.title}
-          </span>
+          <div className="flex flex-wrap items-center gap-2">
+            <span
+              onClick={() => startEdit(row.id, "title", row.original.title)}
+              className={`text-sm cursor-pointer truncate ${
+                row.original.status === "completed"
+                  ? "line-through text-gray-400"
+                  : "text-gray-800 dark:text-gray-100 hover:text-indigo-600"
+              }`}
+            >{row.original.title}</span>
+            <Link to={`/tasks/${row.original.id}`} className="text-xs text-indigo-600 hover:underline">Details</Link>
+            <ChecklistProgress task={row.original} />
+          </div>
         );
       },
     }),

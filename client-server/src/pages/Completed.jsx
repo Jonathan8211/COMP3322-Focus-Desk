@@ -1,4 +1,6 @@
 import { Check, CalendarDays, Target, X } from "lucide-react";
+import { Link } from "react-router-dom";
+import ChecklistProgress from "../components/ChecklistProgress";
 import { formatDateOnly } from "../utils/dateOnly";
 
 export default function Completed({ tasks, onToggle, onDelete }) {
@@ -31,7 +33,7 @@ export default function Completed({ tasks, onToggle, onDelete }) {
                 </button>
   
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm line-through text-gray-300 dark:text-gray-600">{task.title}</p>
+                  <Link to={`/tasks/${task.id}`} className="text-sm line-through text-gray-300 dark:text-gray-600 hover:underline">{task.title}</Link>
                   <div className="flex flex-wrap items-center gap-2 mt-1">
                     {task.due_date && (
                       <span className="inline-flex items-center gap-1 text-xs text-gray-300 dark:text-gray-600">
@@ -40,6 +42,7 @@ export default function Completed({ tasks, onToggle, onDelete }) {
                       </span>
                     )}
                   </div>
+                  <ChecklistProgress task={task} />
                 </div>
   
                 <button

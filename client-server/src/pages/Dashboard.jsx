@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { createTask, updateTask, deleteTask } from "../services/api";
+import ChecklistProgress from "../components/ChecklistProgress";
 
 export default function Dashboard({ tasks, stats, onTasksChanged, showSummary = false }) {
   const [title, setTitle] = useState("");
@@ -39,6 +40,7 @@ export default function Dashboard({ tasks, stats, onTasksChanged, showSummary = 
     <div className="mt-6 space-y-2">{tasks.map((task) => <div key={task.id} className="bg-white border border-gray-200 rounded-xl p-3 flex items-center gap-3">
       <input type="checkbox" aria-label={`Complete ${task.title}`} checked={task.status === "completed"} onChange={() => toggle(task)} />
       <Link to={`/tasks/${task.id}`} className={`flex-1 ${task.status === "completed" ? "line-through text-gray-400" : "text-gray-900"}`}>{task.title}</Link>
+      <ChecklistProgress task={task} />
       {task.due_date && <span className="text-xs text-gray-500">{String(task.due_date).slice(0, 10)}</span>}
       <button onClick={() => remove(task.id)} className="text-xs text-red-600" aria-label={`Delete ${task.title}`}>Delete</button>
     </div>)}</div>

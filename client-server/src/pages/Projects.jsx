@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import { getProjects, createProject, deleteProject, updateTask } from "../services/api";
 import { Folder, Plus, X } from "lucide-react";
+import { Link } from "react-router-dom";
+import ChecklistProgress from "../components/ChecklistProgress";
 
 const COLORS = ["#6366f1", "#ec4899", "#f59e0b", "#10b981", "#3b82f6", "#8b5cf6"];
 
@@ -133,7 +135,8 @@ export default function Projects({ tasks, onTasksChanged }) {
                     {ptasks.map((task) => (
                       <div key={task.id} className="flex items-center gap-3 py-1">
                         <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${task.status === "completed" ? "bg-emerald-400" : "bg-gray-300"}`} />
-                        <span className={`text-sm flex-1 ${task.status === "completed" ? "line-through text-gray-300 dark:text-gray-600" : "text-gray-700 dark:text-gray-200"}`}>{task.title}</span>
+                        <Link to={`/tasks/${task.id}`} className={`text-sm flex-1 ${task.status === "completed" ? "line-through text-gray-300 dark:text-gray-600" : "text-gray-700 dark:text-gray-200"}`}>{task.title}</Link>
+                        <ChecklistProgress task={task} />
                         <span className={`text-xs px-2 py-0.5 rounded-full ${PRIORITY_COLOR[task.priority || "medium"]}`}>{task.priority || "medium"}</span>
                       </div>
                     ))}
@@ -151,7 +154,8 @@ export default function Projects({ tasks, onTasksChanged }) {
                 {unassigned.map((task) => (
                   <div key={task.id} className="flex items-center gap-3 py-1">
                     <div className="w-1.5 h-1.5 rounded-full bg-gray-200 flex-shrink-0" />
-                    <span className="text-sm text-gray-600 dark:text-gray-300 flex-1 truncate">{task.title}</span>
+                    <Link to={`/tasks/${task.id}`} className="text-sm text-gray-600 dark:text-gray-300 flex-1 truncate">{task.title}</Link>
+                    <ChecklistProgress task={task} />
                     {projects.length > 0 && (
                       <select onChange={(e) => e.target.value && handleAssign(task.id, e.target.value)} defaultValue=""
                         className="text-xs border border-gray-200 dark:border-gray-700 rounded-lg px-2 py-1 outline-none text-gray-400 dark:text-gray-500 bg-white dark:bg-gray-950">

@@ -76,6 +76,7 @@ router.get("/", validateQuery(taskValidators.listTasks), taskController.getAllTa
  *         description: Task totals, status counts, overdue count and completion rate
  */
 router.get("/stats", taskController.getTaskStats);
+router.use('/:taskId/checklist-items', require('./checklistRoutes'));
 router.get("/:id", taskController.getTaskById);
 
 /**

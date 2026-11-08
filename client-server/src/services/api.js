@@ -62,9 +62,14 @@ export const getTasks = (params = {}) => {
   return request(`/tasks${query ? `?${query}` : ''}`);
 };
 export const getTaskStats = () => request('/tasks/stats');
+export const getTask = (id) => request(`/tasks/${id}`);
 export const createTask = (data) => request('/tasks', json('POST', data));
 export const updateTask = (id, data) => request(`/tasks/${id}`, json('PUT', data));
 export const deleteTask = (id) => request(`/tasks/${id}`, { method: 'DELETE' });
+export const getChecklistItems = (taskId) => request(`/tasks/${taskId}/checklist-items`);
+export const createChecklistItem = (taskId, title) => request(`/tasks/${taskId}/checklist-items`, json('POST', { title }));
+export const updateChecklistItem = (taskId, itemId, data) => request(`/tasks/${taskId}/checklist-items/${itemId}`, json('PATCH', data));
+export const deleteChecklistItem = (taskId, itemId) => request(`/tasks/${taskId}/checklist-items/${itemId}`, { method: 'DELETE' });
 export const getProjects = () => request('/projects');
 export const createProject = (data) => request('/projects', json('POST', data));
 export const deleteProject = (id) => request(`/projects/${id}`, { method: 'DELETE' });
