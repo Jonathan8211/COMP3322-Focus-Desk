@@ -98,12 +98,8 @@ router.post("/", validate(projectValidators.createProject), async (req, res, nex
  *         schema: { type: integer }
  *         description: Project ID
  *     responses:
- *       200:
+ *       204:
  *         description: Project deleted
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/SuccessResponse'
  *       404:
  *         description: Project not found
  *         content:
@@ -114,7 +110,7 @@ router.post("/", validate(projectValidators.createProject), async (req, res, nex
 router.delete("/:id", async (req, res, next) => {
   try {
     await projectService.deleteProject(req.params.id, req.user.id);
-    res.json({ success: true });
+    res.status(204).send();
   } catch (err) {
     next(err);
   }

@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { createTask, updateTask, deleteTask } from "../services/api";
 
-export default function Dashboard({ tasks, setTasks, showSummary = false }) {
+export default function Dashboard({ tasks, stats, onTasksChanged, showSummary = false }) {
   const [title, setTitle] = useState("");
   const [dueDate, setDueDate] = useState("");
   const [priority, setPriority] = useState("medium");
@@ -12,22 +12,23 @@ export default function Dashboard({ tasks, setTasks, showSummary = false }) {
     if (!title.trim()) return;
     const result = await createTask({ title: title.trim(), due_date: dueDate || null, priority });
     if (!result.success) { setError(result.message || "Could not create task."); return; }
-    setTasks((current) => [result.data, ...current]);
+    await onTasksChanged();
     setTitle(""); setDueDate(""); setError("");
   };
   const toggle = async (task) => {
     const result = await updateTask(task.id, { status: task.status === "completed" ? "pending" : "completed" });
-    if (result.success) setTasks((current) => [ ...(result.nextOccurrence ? [result.nextOccurrence] : []), ...current.map((item) => item.id === task.id ? result.data : item) ]);
+    if (result.success) await onTasksChanged();
+    else setError(result.message || "Could not update task.");
   };
   const remove = async (id) => {
     const result = await deleteTask(id);
-    if (result.success) setTasks((current) => current.filter((item) => item.id !== id));
+    if (result.success) await onTasksChanged();
+    else setError(result.message || "Could not delete task.");
   };
-  const complete = tasks.filter((task) => task.status === "completed").length;
   return <section className="max-w-4xl mx-auto p-6 md:p-8">
     <h1 className="text-3xl font-bold text-gray-900">{showSummary ? "Dashboard" : "Tasks"}</h1>
     <p className="mt-1 text-sm text-gray-500">Keep today clear and your work moving.</p>
-    {showSummary && <div className="grid grid-cols-3 gap-3 mt-6 mb-8">{[["All tasks", tasks.length], ["Open", tasks.length - complete], ["Completed", complete]].map(([label, value]) => <div key={label} className="bg-white border border-gray-200 rounded-2xl p-4"><p className="text-sm text-gray-500">{label}</p><p className="text-2xl font-semibold mt-2">{value}</p></div>)}</div>}
+    {showSummary && <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mt-6 mb-8">{[["All tasks", stats.total], ["Open", stats.pending], ["Completed", stats.completed], ["Overdue", stats.overdue], ["Completion rate", `${stats.completionRate}%`]].map(([label, value]) => <div key={label} className="bg-white border border-gray-200 rounded-2xl p-4"><p className="text-sm text-gray-500">{label}</p><p className="text-2xl font-semibold mt-2">{value}</p></div>)}</div>}
     <form onSubmit={add} className="bg-white border border-gray-200 rounded-2xl p-4 mt-6 flex flex-wrap gap-3">
       <input aria-label="Task title" value={title} onChange={(event) => setTitle(event.target.value)} placeholder="Add a task" className="border rounded-lg px-3 py-2 flex-1 min-w-44" required />
       <input aria-label="Due date" type="date" value={dueDate} onChange={(event) => setDueDate(event.target.value)} className="border rounded-lg px-3 py-2" />

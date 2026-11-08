@@ -3,6 +3,7 @@ const router = express.Router();
 const taskController = require("../controllers/taskController");
 const authMiddleware = require("../middleware/authMiddleware");
 const validate = require("../middleware/validate");
+const validateQuery = require("../middleware/validateQuery");
 const taskValidators = require("../validators/task.validators");
 
 router.use(authMiddleware);
@@ -37,6 +38,10 @@ router.use(authMiddleware);
  *         name: priority
  *         schema: { type: string, enum: [low, medium, high] }
  *         description: Filter by priority
+ *       - in: query
+ *         name: project
+ *         schema: { type: string }
+ *         description: Filter by project name
  *     responses:
  *       200:
  *         description: List of tasks
@@ -58,7 +63,20 @@ router.use(authMiddleware);
  *                     total: { type: integer }
  *                     totalPages: { type: integer }
  */
-router.get("/", taskController.getAllTasks);
+router.get("/", validateQuery(taskValidators.listTasks), taskController.getAllTasks);
+
+/**
+ * @swagger
+ * /api/tasks/stats:
+ *   get:
+ *     summary: Get task counts for the authenticated user
+ *     tags: [Tasks]
+ *     responses:
+ *       200:
+ *         description: Task totals, status counts, overdue count and completion rate
+ */
+router.get("/stats", taskController.getTaskStats);
+router.get("/:id", taskController.getTaskById);
 
 /**
  * @swagger
@@ -169,12 +187,8 @@ router.put("/:id", validate(taskValidators.updateTask), taskController.updateTas
  *         schema: { type: integer }
  *         description: Task ID
  *     responses:
- *       200:
+ *       204:
  *         description: Task deleted
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/SuccessResponse'
  *       404:
  *         description: Task not found
  *         content:

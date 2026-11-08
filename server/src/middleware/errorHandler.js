@@ -1,34 +1,13 @@
-/**
- * Global error handling middleware.
- * Must be registered as the LAST middleware in index.js.
- * Catches every error passed through next(err).
- */
-const errorHandler = (err, req, res, _next) => {
-  // JWT errors
-  if (err.name === "JsonWebTokenError") {
-    return res.status(401).json({ success: false, message: "Invalid token." });
+const errorHandler = (error, req, res, _next) => {
+  if (error.code === 'ER_DUP_ENTRY') {
+    return res.status(409).json({ success: false, message: 'This record already exists.' });
   }
-  if (err.name === "TokenExpiredError") {
-    return res.status(401).json({ success: false, message: "Token has expired. Please sign in again." });
+  const status = Number(error.statusCode || error.status);
+  if (status >= 400 && status < 500) {
+    return res.status(status).json({ success: false, message: error.message || 'Request could not be completed.' });
   }
-
-  // MySQL duplicate entry
-  if (err.code === "ER_DUP_ENTRY") {
-    return res.status(409).json({ success: false, message: "This record already exists." });
-  }
-
-  // Log the full error for debugging (server-side only, never exposed to the client)
-  console.error(`[${new Date().toISOString()}] ${req.method} ${req.originalUrl}`, err);
-
-  // Default: 500 Internal Server Error
-  const statusCode = err.statusCode || err.status || 500;
-  res.status(statusCode).json({
-    success: false,
-    message:
-      process.env.NODE_ENV === "production"
-        ? "Internal server error. Please try again."
-        : err.message,
-  });
+  console.error(`[${new Date().toISOString()}] ${req.method} ${req.originalUrl}`, error);
+  res.status(500).json({ success: false, message: 'Internal server error.' });
 };
 
 module.exports = errorHandler;

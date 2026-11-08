@@ -1,212 +1,181 @@
-const bcrypt = require("bcryptjs");
-const jwt = require("jsonwebtoken");
-const crypto = require("crypto");
-const { db } = require("../config/database");
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
+const crypto = require('node:crypto');
+const { db } = require('../config/database');
 
-const sendServerError = (res, error) =>
-  res.status(500).json({ success: false, message: error.message });
-
-const REFRESH_TOKEN_EXPIRES_DAYS = 7;
-
-const COOKIE_OPTIONS = {
+const REFRESH_DAYS = 7;
+const COOKIE_NAME = 'refreshToken';
+const cookieOptions = {
   httpOnly: true,
-  secure: process.env.NODE_ENV === "production",
-  sameSite: "strict",
-  maxAge: REFRESH_TOKEN_EXPIRES_DAYS * 24 * 60 * 60 * 1000,
+  secure: process.env.COOKIE_SECURE === 'true',
+  sameSite: 'strict',
+  path: '/api/auth',
+  maxAge: REFRESH_DAYS * 24 * 60 * 60 * 1000,
 };
-
-const hashToken = (token) =>
-  crypto.createHash("sha256").update(token).digest("hex");
-
-const toPublicUser = (user) => ({
-  id: user.id,
-  name: user.name,
-  email: user.email,
+const hashToken = (token) => crypto.createHash('sha256').update(token).digest('hex');
+const publicUser = ({ id, name, email, timezone }) => ({ id, name, email, timezone });
+const accessTokenFor = (user) => jwt.sign(
+  { id: user.id, session_version: user.session_version },
+  process.env.JWT_SECRET,
+  { expiresIn: '15m' }
+);
+const newRefresh = () => {
+  const raw = crypto.randomBytes(40).toString('hex');
+  return { raw, hash: hashToken(raw), expires: new Date(Date.now() + REFRESH_DAYS * 86400000) };
+};
+const setRefreshCookie = (res, raw) => res.cookie(COOKIE_NAME, raw, cookieOptions);
+const clearRefreshCookie = (res) => res.clearCookie(COOKIE_NAME, {
+  httpOnly: cookieOptions.httpOnly,
+  secure: cookieOptions.secure,
+  sameSite: cookieOptions.sameSite,
+  path: cookieOptions.path,
 });
 
-const generateAndStoreRefreshToken = async (userId) => {
-  const rawToken = crypto.randomBytes(40).toString("hex");
-  const tokenHash = hashToken(rawToken);
-  const expiresAt = new Date(Date.now() + REFRESH_TOKEN_EXPIRES_DAYS * 24 * 60 * 60 * 1000);
-
-  // Delete existing tokens for this user (single active session per user)
-  await db.query("DELETE FROM refresh_tokens WHERE user_id = ?", [userId]);
-
-  await db.query(
-    "INSERT INTO refresh_tokens (user_id, token_hash, expires_at) VALUES (?, ?, ?)",
-    [userId, tokenHash, expiresAt]
-  );
-
-  return rawToken;
-};
-
-const register = async (req, res) => {
+async function withLockedUser(userId, fn) {
+  const connection = await db.getConnection();
   try {
-    const { name, email, password } = req.body;
-    if (!name || !email || !password) {
-      return res.status(400).json({ success: false, message: "All fields are required" });
+    await connection.beginTransaction();
+    const [[user]] = await connection.query('SELECT id, name, email, timezone, session_version FROM users WHERE id = ? FOR UPDATE', [userId]);
+    if (!user) {
+      await connection.rollback();
+      return null;
     }
+    const result = await fn(connection, user);
+    await connection.commit();
+    return result;
+  } catch (error) {
+    await connection.rollback();
+    throw error;
+  } finally {
+    connection.release();
+  }
+}
 
-    const [existing] = await db.query("SELECT id FROM users WHERE email = ?", [email]);
-    if (existing.length > 0) {
-      return res.status(400).json({ success: false, message: "Email is already registered" });
-    }
-
+const register = async (req, res, next) => {
+  try {
+    const { name, email, password, timezone } = req.body;
+    const [existing] = await db.query('SELECT id FROM users WHERE email = ?', [email]);
+    if (existing.length) return res.status(409).json({ success: false, message: 'Email is already registered.' });
     const hashedPassword = await bcrypt.hash(password, 10);
     const [result] = await db.query(
-      "INSERT INTO users (name, email, password) VALUES (?, ?, ?)",
-      [name, email, hashedPassword]
+      'INSERT INTO users (name, email, password, timezone) VALUES (?, ?, ?, ?)',
+      [name, email, hashedPassword, timezone]
     );
-
-    res.status(201).json({
-      success: true,
-      message: "Account created successfully",
-      data: { id: result.insertId, name, email },
-    });
+    res.status(201).json({ success: true, data: { id: result.insertId, name, email, timezone } });
   } catch (error) {
-    return sendServerError(res, error);
+    next(error);
   }
 };
 
-const login = async (req, res) => {
+const login = async (req, res, next) => {
   try {
     const { email, password } = req.body;
-    if (!email || !password) {
-      return res.status(400).json({ success: false, message: "Email and password are required" });
+    const [[account]] = await db.query('SELECT id, password FROM users WHERE email = ?', [email]);
+    if (!account || !(await bcrypt.compare(password, account.password))) {
+      return res.status(401).json({ success: false, message: 'Incorrect email or password.' });
     }
-
-    const [users] = await db.query("SELECT * FROM users WHERE email = ?", [email]);
-    if (users.length === 0) {
-      return res.status(401).json({ success: false, message: "Incorrect email or password" });
-    }
-
-    const user = users[0];
-    const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) {
-      return res.status(401).json({ success: false, message: "Incorrect email or password" });
-    }
-
-    const accessToken = jwt.sign(
-      { id: user.id, email: user.email },
-      process.env.JWT_SECRET,
-      { expiresIn: process.env.JWT_EXPIRES_IN || "15m" }
-    );
-
-    const rawRefreshToken = await generateAndStoreRefreshToken(user.id);
-    res.cookie("refreshToken", rawRefreshToken, COOKIE_OPTIONS);
-
-    res.json({
-      success: true,
-      message: "Signed in successfully",
-      data: {
-        token: accessToken,
-        user: toPublicUser(user),
-      },
+    const result = await withLockedUser(account.id, async (connection, user) => {
+      const sessionVersion = user.session_version + 1;
+      const refresh = newRefresh();
+      await connection.query('UPDATE users SET session_version = ? WHERE id = ?', [sessionVersion, user.id]);
+      await connection.query('DELETE FROM refresh_tokens WHERE user_id = ?', [user.id]);
+      await connection.query(
+        'INSERT INTO refresh_tokens (user_id, token_hash, expires_at) VALUES (?, ?, ?)',
+        [user.id, refresh.hash, refresh.expires]
+      );
+      return { user: { ...user, session_version: sessionVersion }, refresh: refresh.raw };
     });
+    if (!result) return res.status(401).json({ success: false, message: 'Account unavailable.' });
+    setRefreshCookie(res, result.refresh);
+    res.json({ success: true, data: { token: accessTokenFor(result.user), user: publicUser(result.user) } });
   } catch (error) {
-    return sendServerError(res, error);
+    next(error);
   }
 };
 
-const refreshAccessToken = async (req, res) => {
+const refreshAccessToken = async (req, res, next) => {
   try {
-    const rawToken = req.cookies?.refreshToken;
-    if (!rawToken) {
-      return res.status(401).json({ success: false, message: "Refresh token not found" });
+    const raw = req.cookies?.[COOKIE_NAME];
+    if (!raw) return res.status(401).json({ success: false, message: 'Session unavailable.' });
+    const hash = hashToken(raw);
+    const [[candidate]] = await db.query('SELECT user_id FROM refresh_tokens WHERE token_hash = ? AND expires_at > UTC_TIMESTAMP()', [hash]);
+    if (!candidate) {
+      clearRefreshCookie(res);
+      return res.status(401).json({ success: false, message: 'Session expired.' });
     }
-
-    const tokenHash = hashToken(rawToken);
-    const [rows] = await db.query(
-      "SELECT * FROM refresh_tokens WHERE token_hash = ? AND expires_at > NOW()",
-      [tokenHash]
-    );
-
-    if (rows.length === 0) {
-      res.clearCookie("refreshToken", COOKIE_OPTIONS);
-      return res.status(401).json({ success: false, message: "Refresh token is invalid or has expired" });
+    const result = await withLockedUser(candidate.user_id, async (connection, user) => {
+      const [[stored]] = await connection.query(
+        'SELECT id FROM refresh_tokens WHERE user_id = ? AND token_hash = ? AND expires_at > UTC_TIMESTAMP() FOR UPDATE',
+        [user.id, hash]
+      );
+      if (!stored) return null;
+      const replacement = newRefresh();
+      await connection.query('DELETE FROM refresh_tokens WHERE user_id = ?', [user.id]);
+      await connection.query(
+        'INSERT INTO refresh_tokens (user_id, token_hash, expires_at) VALUES (?, ?, ?)',
+        [user.id, replacement.hash, replacement.expires]
+      );
+      return { user, refresh: replacement.raw };
+    });
+    if (!result) {
+      clearRefreshCookie(res);
+      return res.status(401).json({ success: false, message: 'Session expired.' });
     }
-
-    const storedToken = rows[0];
-    const [userRows] = await db.query("SELECT id, name, email FROM users WHERE id = ?", [storedToken.user_id]);
-    if (userRows.length === 0) {
-      return res.status(401).json({ success: false, message: "User not found" });
-    }
-
-    const user = userRows[0];
-
-    // Rotate: delete old refresh token, issue new one
-    const newRawRefreshToken = await generateAndStoreRefreshToken(user.id);
-    res.cookie("refreshToken", newRawRefreshToken, COOKIE_OPTIONS);
-
-    const accessToken = jwt.sign(
-      { id: user.id, email: user.email },
-      process.env.JWT_SECRET,
-      { expiresIn: process.env.JWT_EXPIRES_IN || "15m" }
-    );
-
-    res.json({ success: true, data: { token: accessToken } });
+    setRefreshCookie(res, result.refresh);
+    res.json({ success: true, data: { token: accessTokenFor(result.user) } });
   } catch (error) {
-    return sendServerError(res, error);
+    next(error);
   }
 };
 
-const logout = async (req, res) => {
+const logout = async (req, res, next) => {
   try {
-    const rawToken = req.cookies?.refreshToken;
-    if (rawToken) {
-      const tokenHash = hashToken(rawToken);
-      await db.query("DELETE FROM refresh_tokens WHERE token_hash = ?", [tokenHash]);
+    const raw = req.cookies?.[COOKIE_NAME];
+    if (raw) {
+      const hash = hashToken(raw);
+      const [[candidate]] = await db.query('SELECT user_id FROM refresh_tokens WHERE token_hash = ?', [hash]);
+      if (candidate) {
+        await withLockedUser(candidate.user_id, async (connection, user) => {
+          const [[stored]] = await connection.query('SELECT id FROM refresh_tokens WHERE user_id = ? AND token_hash = ? FOR UPDATE', [user.id, hash]);
+          if (stored) {
+            await connection.query('DELETE FROM refresh_tokens WHERE user_id = ?', [user.id]);
+            await connection.query('UPDATE users SET session_version = session_version + 1 WHERE id = ?', [user.id]);
+          }
+        });
+      }
     }
-    res.clearCookie("refreshToken", COOKIE_OPTIONS);
-    res.json({ success: true, message: "Signed out successfully" });
+    clearRefreshCookie(res);
+    res.json({ success: true });
   } catch (error) {
-    return sendServerError(res, error);
+    next(error);
   }
 };
 
-const getMe = async (req, res) => {
+const getMe = async (req, res, next) => {
   try {
-    const [rows] = await db.query(
-      "SELECT id, name, email FROM users WHERE id = ?",
-      [req.user.id]
-    );
-    if (rows.length === 0) {
-      return res.status(401).json({ success: false, message: "User not found" });
-    }
-    res.json({ success: true, data: toPublicUser(rows[0]) });
+    const [[user]] = await db.query('SELECT id, name, email, timezone FROM users WHERE id = ?', [req.user.id]);
+    if (!user) return res.status(401).json({ success: false, message: 'Session unavailable.' });
+    res.json({ success: true, data: publicUser(user) });
   } catch (error) {
-    return sendServerError(res, error);
+    next(error);
   }
 };
 
-const updateMe = async (req, res) => {
+const updateMe = async (req, res, next) => {
   try {
-    const { name } = req.body;
     const fields = [];
     const values = [];
-
-    if (name !== undefined) {
-      fields.push("name = ?");
-      values.push(name);
+    for (const key of ['name', 'timezone']) {
+      if (req.body[key] !== undefined) {
+        fields.push(`${key} = ?`);
+        values.push(req.body[key]);
+      }
     }
-    if (fields.length === 0) {
-      return res.status(400).json({ success: false, message: "Provide at least one field to update" });
-    }
-
-    values.push(req.user.id);
-    await db.query(`UPDATE users SET ${fields.join(", ")} WHERE id = ?`, values);
-
-    const [rows] = await db.query(
-      "SELECT id, name, email FROM users WHERE id = ?",
-      [req.user.id]
-    );
-    res.json({
-      success: true,
-      message: "Settings saved",
-      data: toPublicUser(rows[0]),
-    });
+    await db.query(`UPDATE users SET ${fields.join(', ')} WHERE id = ?`, [...values, req.user.id]);
+    const [[user]] = await db.query('SELECT id, name, email, timezone FROM users WHERE id = ?', [req.user.id]);
+    res.json({ success: true, data: publicUser(user) });
   } catch (error) {
-    return sendServerError(res, error);
+    next(error);
   }
 };
 

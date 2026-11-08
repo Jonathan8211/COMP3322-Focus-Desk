@@ -1,14 +1,8 @@
 import { Check, CalendarDays, Target, X } from "lucide-react";
+import { formatDateOnly } from "../utils/dateOnly";
 
 export default function Completed({ tasks, onToggle, onDelete }) {
     const completedTasks = tasks.filter((t) => t.status === "completed");
-  
-    const formatDate = (dateStr) => {
-      if (!dateStr) return null;
-      return new Date(dateStr).toLocaleDateString("en-GB", {
-        day: "numeric", month: "short", year: "numeric",
-      });
-    };
   
     return (
       <div className="flex-1 p-4 md:p-8 max-w-2xl mx-auto w-full">
@@ -42,7 +36,7 @@ export default function Completed({ tasks, onToggle, onDelete }) {
                     {task.due_date && (
                       <span className="inline-flex items-center gap-1 text-xs text-gray-300 dark:text-gray-600">
                         <CalendarDays className="w-3 h-3" />
-                        {formatDate(task.due_date)}
+                        {formatDateOnly(task.due_date, { day: "numeric", month: "short", year: "numeric" })}
                       </span>
                     )}
                   </div>

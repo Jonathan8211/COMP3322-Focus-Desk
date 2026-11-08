@@ -10,7 +10,7 @@ const PRIORITY_COLOR = {
   low: "bg-emerald-50 dark:bg-emerald-900/20 text-emerald-500",
 };
 
-export default function Projects({ tasks, setTasks }) {
+export default function Projects({ tasks, onTasksChanged }) {
   const [projects, setProjects] = useState([]);
   const [showForm, setShowForm] = useState(false);
   const [newName, setNewName] = useState("");
@@ -43,12 +43,16 @@ export default function Projects({ tasks, setTasks }) {
 
   const handleDelete = async (id) => {
     const res = await deleteProject(id);
-    if (res.success) setProjects(projects.filter((p) => p.id !== id));
+    if (res.success) {
+      setProjects((current) => current.filter((p) => p.id !== id));
+      await onTasksChanged();
+    } else setError(res.message || "Could not delete project.");
   };
 
   const handleAssign = async (taskId, projectName) => {
     const res = await updateTask(taskId, { project: projectName });
-    if (res.success) setTasks((prev) => prev.map((t) => (t.id === taskId ? res.data : t)));
+    if (res.success) await onTasksChanged();
+    else setError(res.message || "Could not assign task.");
   };
 
   const getProjectTasks = (name) => tasks.filter((t) => t.project === name);

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { dateOnly, daysFromToday, todayDateOnly } from "../utils/dateOnly";
 
 const PRIORITY_COLOR = {
   high: "bg-red-100 dark:bg-red-900/20 text-red-600 border-red-200 dark:border-red-800",
@@ -7,8 +8,9 @@ const PRIORITY_COLOR = {
   low: "bg-emerald-100 dark:bg-emerald-900/20 text-emerald-600 border-emerald-200 dark:border-emerald-800",
 };
 
-export default function CalendarView({ tasks }) {
-  const today = new Date();
+export default function CalendarView({ tasks, timezone }) {
+  const [todayYear, todayMonth, todayDay] = todayDateOnly(timezone).split("-").map(Number);
+  const today = new Date(todayYear, todayMonth - 1, todayDay);
   const [currentMonth, setCurrentMonth] = useState(new Date(today.getFullYear(), today.getMonth(), 1));
 
   const year = currentMonth.getFullYear();
@@ -23,8 +25,7 @@ export default function CalendarView({ tasks }) {
   const getTasksForDay = (day) => {
     return tasks.filter((t) => {
       if (!t.due_date) return false;
-      const d = new Date(t.due_date);
-      return d.getFullYear() === year && d.getMonth() === month && d.getDate() === day;
+      return dateOnly(t.due_date) === `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
     });
   };
 
@@ -138,11 +139,10 @@ export default function CalendarView({ tasks }) {
             <div className="space-y-2">
               {tasks
                 .filter((t) => t.due_date && t.status !== "completed")
-                .sort((a, b) => new Date(a.due_date) - new Date(b.due_date))
+                .sort((a, b) => dateOnly(a.due_date).localeCompare(dateOnly(b.due_date)))
                 .slice(0, 5)
                 .map((task) => {
-                  const due = new Date(task.due_date);
-                  const diff = Math.ceil((due - today) / (1000 * 60 * 60 * 24));
+                  const diff = daysFromToday(task.due_date, timezone);
                   return (
                     <div key={task.id} className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm dark:shadow-none px-4 py-3 flex items-center gap-3">
                       <div className={`w-2 h-2 rounded-full flex-shrink-0 ${diff < 0 ? "bg-red-400" : diff === 0 ? "bg-amber-400" : "bg-indigo-400"}`} />

@@ -2,8 +2,10 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { loginUser } from "../services/api";
 import BrandMark from "../components/BrandMark";
+import { useAuth } from "../contexts/useAuth";
 
-export default function Login({ onLogin }) {
+export default function Login() {
+  const { acceptSession } = useAuth();
   const navigate = useNavigate();
   const [form, setForm] = useState({ email: "", password: "" });
   const [error, setError] = useState("");
@@ -15,9 +17,8 @@ export default function Login({ onLogin }) {
     setError("");
     const res = await loginUser(form);
     if (res.success) {
-      localStorage.setItem("token", res.data.token);
-      localStorage.setItem("user", JSON.stringify(res.data.user));
-      onLogin(res.data.user);
+      acceptSession(res.data);
+      navigate("/dashboard");
     } else {
       setError(res.message);
     }

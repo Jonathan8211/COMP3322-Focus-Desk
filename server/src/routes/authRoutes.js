@@ -15,6 +15,19 @@ const auth = require("../middleware/authMiddleware");
  *   post:
  *     tags: [Auth]
  *     summary: Create an account
+ *     description: Email is used as a sign-in name. No email delivery is required.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [name, email, password, timezone]
+ *             properties:
+ *               name: { type: string }
+ *               email: { type: string, format: email }
+ *               password: { type: string, format: password }
+ *               timezone: { type: string, example: Asia/Shanghai }
  *     responses:
  *       201:
  *         description: Account created
@@ -61,6 +74,15 @@ router.post("/logout", controller.logout);
  *   patch:
  *     tags: [Auth]
  *     summary: Update current account
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name: { type: string }
+ *               timezone: { type: string, example: Asia/Shanghai }
  *     responses:
  *       200:
  *         description: Account updated

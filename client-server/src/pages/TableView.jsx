@@ -9,6 +9,7 @@ import {
 } from "@tanstack/react-table";
 import { updateTask, deleteTask } from "../services/api";
 import useDebounce from "../hooks/useDebounce";
+import { dateOnly, formatDateOnly, todayDateOnly } from "../utils/dateOnly";
 import { Check, TriangleAlert, X, Search } from "lucide-react";
 
 const PRIORITY_CONFIG = {
@@ -19,7 +20,7 @@ const PRIORITY_CONFIG = {
 
 const columnHelper = createColumnHelper();
 
-export default function TableView({ tasks, setTasks }) {
+export default function TableView({ tasks, onTasksChanged, timezone }) {
   const [sorting, setSorting] = useState([]);
   const [searchInput, setSearchInput] = useState("");
   const [editingCell, setEditingCell] = useState(null); // { rowId, field }
@@ -29,13 +30,13 @@ export default function TableView({ tasks, setTasks }) {
   const handleToggle = useCallback(async (task) => {
     const status = task.status === "pending" ? "completed" : "pending";
     const res = await updateTask(task.id, { status });
-    if (res.success) setTasks((prev) => prev.map((t) => (t.id === task.id ? res.data : t)));
-  }, [setTasks]);
+    if (res.success) await onTasksChanged();
+  }, [onTasksChanged]);
 
   const handleDelete = useCallback(async (id) => {
     const res = await deleteTask(id);
-    if (res.success) setTasks((prev) => prev.filter((t) => t.id !== id));
-  }, [setTasks]);
+    if (res.success) await onTasksChanged();
+  }, [onTasksChanged]);
 
   const startEdit = (rowId, field, value) => {
     setEditingCell({ rowId, field });
@@ -46,25 +47,22 @@ export default function TableView({ tasks, setTasks }) {
     if (!editingCell) return;
     const { field } = editingCell;
     const res = await updateTask(task.id, { [field]: editValue });
-    if (res.success) setTasks((prev) => prev.map((t) => (t.id === task.id ? res.data : t)));
+    if (res.success) await onTasksChanged();
     setEditingCell(null);
-  }, [editingCell, editValue, setTasks]);
+  }, [editingCell, editValue, onTasksChanged]);
 
   const handlePriority = useCallback(async (task, priority) => {
     const res = await updateTask(task.id, { priority });
-    if (res.success) setTasks((prev) => prev.map((t) => (t.id === task.id ? res.data : t)));
-  }, [setTasks]);
+    if (res.success) await onTasksChanged();
+  }, [onTasksChanged]);
 
-  const formatDate = (dateStr) => {
-    if (!dateStr) return "—";
-    return new Date(dateStr).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
-  };
+  const formatDate = (dateStr) => dateStr
+    ? formatDateOnly(dateStr, { day: "numeric", month: "short", year: "numeric" }) : "—";
 
-  const isOverdue = (dateStr, status) => {
+  const isOverdue = useCallback((dateStr, status) => {
     if (!dateStr || status === "completed") return false;
-    const today = new Date(); today.setHours(0, 0, 0, 0);
-    return new Date(dateStr) < today;
-  };
+    return dateOnly(dateStr) < todayDateOnly(timezone);
+  }, [timezone]);
 
   const columns = useMemo(() => [
     // Status toggle
@@ -206,7 +204,7 @@ export default function TableView({ tasks, setTasks }) {
       size: 120,
       cell: ({ row }) => (
         <span className="text-xs text-gray-400">
-          {formatDate(row.original.created_at)}
+          {new Date(row.original.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
         </span>
       ),
     }),
@@ -225,7 +223,7 @@ export default function TableView({ tasks, setTasks }) {
         </button>
       ),
     }),
-  ], [editingCell, editValue, handleDelete, handlePriority, handleToggle, saveEdit]);
+  ], [editingCell, editValue, handleDelete, handlePriority, handleToggle, isOverdue, saveEdit]);
 
   // eslint-disable-next-line react-hooks/incompatible-library
   const table = useReactTable({

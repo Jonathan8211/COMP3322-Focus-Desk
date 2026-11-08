@@ -1,52 +1,47 @@
-const Joi = require("joi");
+const Joi = require('joi');
+const { DateTime } = require('luxon');
 
-const PRIORITY = ["low", "medium", "high"];
-const KANBAN_STATUS = ["todo", "inprogress", "done"];
-const STATUS = ["pending", "completed"];
-const RECURRENCE = ["none", "daily", "weekly", "monthly"];
+const PRIORITY = ['low', 'medium', 'high'];
+const KANBAN_STATUS = ['todo', 'inprogress', 'done'];
+const STATUS = ['pending', 'completed'];
+const RECURRENCE = ['none', 'daily', 'weekly', 'monthly'];
+const dueDate = Joi.string().pattern(/^\d{4}-\d{2}-\d{2}$/).custom((value, helpers) => {
+  if (!DateTime.fromISO(value, { zone: 'UTC' }).isValid) return helpers.error('any.invalid');
+  return value;
+}).allow(null);
+const project = Joi.string().max(100).trim().allow('', null);
+const consistentStatus = (value, helpers) => {
+  if (value.status && value.kanban_status && (value.status === 'completed') !== (value.kanban_status === 'done')) {
+    return helpers.error('any.invalid');
+  }
+  return value;
+};
 
 const createTask = Joi.object({
-  title: Joi.string().min(1).max(255).trim().required().messages({
-    "string.empty": "Task title cannot be empty",
-    "any.required": "Task title is required",
-  }),
-  description: Joi.string().allow("", null).optional(),
-  due_date: Joi.date().iso().allow(null).optional().messages({
-    "date.format": "Invalid date format. Use the YYYY-MM-DD format",
-  }),
-  priority: Joi.string().valid(...PRIORITY).default("medium").messages({
-    "any.only": `Priority must be one of: ${PRIORITY.join(", ")}`,
-  }),
-  kanban_status: Joi.string().valid(...KANBAN_STATUS).default("todo").messages({
-    "any.only": `Kanban status must be one of: ${KANBAN_STATUS.join(", ")}`,
-  }),
-  project: Joi.string().max(100).allow("", null).optional(),
-  recurrence: Joi.string().valid(...RECURRENCE).default("none").messages({
-    "any.only": `Recurrence must be one of: ${RECURRENCE.join(", ")}`,
-  }),
+  title: Joi.string().min(1).max(255).trim().required(),
+  description: Joi.string().allow('', null),
+  due_date: dueDate,
+  priority: Joi.string().valid(...PRIORITY).default('medium'),
+  kanban_status: Joi.string().valid(...KANBAN_STATUS).default('todo'),
+  project,
+  recurrence: Joi.string().valid(...RECURRENCE).default('none'),
 });
-
 const updateTask = Joi.object({
-  title: Joi.string().min(1).max(255).trim().optional(),
-  description: Joi.string().allow("", null).optional(),
-  status: Joi.string().valid(...STATUS).optional().messages({
-    "any.only": `Status must be one of: ${STATUS.join(", ")}`,
-  }),
-  due_date: Joi.date().iso().allow(null).optional().messages({
-    "date.format": "Invalid date format. Use the YYYY-MM-DD format",
-  }),
-  priority: Joi.string().valid(...PRIORITY).optional().messages({
-    "any.only": `Priority must be one of: ${PRIORITY.join(", ")}`,
-  }),
-  kanban_status: Joi.string().valid(...KANBAN_STATUS).optional().messages({
-    "any.only": `Kanban status must be one of: ${KANBAN_STATUS.join(", ")}`,
-  }),
-  project: Joi.string().max(100).allow("", null).optional(),
-  recurrence: Joi.string().valid(...RECURRENCE).optional().messages({
-    "any.only": `Recurrence must be one of: ${RECURRENCE.join(", ")}`,
-  }),
-}).min(1).messages({
-  "object.min": "At least one field must be provided to update",
+  title: Joi.string().min(1).max(255).trim(),
+  description: Joi.string().allow('', null),
+  status: Joi.string().valid(...STATUS),
+  due_date: dueDate,
+  priority: Joi.string().valid(...PRIORITY),
+  kanban_status: Joi.string().valid(...KANBAN_STATUS),
+  project,
+  recurrence: Joi.string().valid(...RECURRENCE),
+}).min(1).custom(consistentStatus).messages({ 'any.invalid': 'Status and board column must agree.' });
+const listTasks = Joi.object({
+  page: Joi.number().integer().min(1).default(1),
+  limit: Joi.number().integer().min(1).max(100).default(20),
+  status: Joi.string().valid(...STATUS),
+  priority: Joi.string().valid(...PRIORITY),
+  project: Joi.string().max(100).trim(),
 });
 
-module.exports = { createTask, updateTask };
+module.exports = { createTask, updateTask, listTasks };

@@ -1,21 +1,24 @@
-const jwt = require("jsonwebtoken");
+const jwt = require('jsonwebtoken');
+const { db } = require('../config/database');
 
-const authMiddleware = (req, res, next) => {
-  const authHeader = req.headers.authorization;
-
-  if (!authHeader || !authHeader.startsWith("Bearer ")) {
-    return res.status(401).json({ success: false, message: "Token not found. Please sign in." });
-  }
-
-  const token = authHeader.split(" ")[1];
-
+module.exports = async (req, res, next) => {
+  const match = /^Bearer (\S+)$/.exec(req.headers.authorization || '');
+  if (!match) return res.status(401).json({ success: false, message: 'Sign in required.' });
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = decoded;
+    const claims = jwt.verify(match[1], process.env.JWT_SECRET);
+    if (!Number.isInteger(claims.id) || !Number.isInteger(claims.session_version)) {
+      return res.status(401).json({ success: false, message: 'Session expired.' });
+    }
+    const [[user]] = await db.query('SELECT id, session_version FROM users WHERE id = ?', [claims.id]);
+    if (!user || user.session_version !== claims.session_version) {
+      return res.status(401).json({ success: false, message: 'Session expired.' });
+    }
+    req.user = { id: user.id };
     next();
   } catch (error) {
-    return res.status(401).json({ success: false, message: "Token is invalid or has expired." });
+    if (error.name === 'JsonWebTokenError' || error.name === 'TokenExpiredError' || error.name === 'NotBeforeError') {
+      return res.status(401).json({ success: false, message: 'Session expired.' });
+    }
+    next(error);
   }
 };
-
-module.exports = authMiddleware;

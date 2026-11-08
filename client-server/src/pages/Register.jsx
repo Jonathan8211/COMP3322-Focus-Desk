@@ -28,6 +28,7 @@ export default function Register() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(false);
+  const [timezone, setTimezone] = useState(() => Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC");
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -51,6 +52,7 @@ export default function Register() {
       name: form.name,
       email: form.email,
       password: form.password,
+      timezone,
     });
 
     if (res.success) {
@@ -135,6 +137,13 @@ export default function Register() {
               className="w-full bg-white dark:bg-gray-950 border border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-gray-400 dark:focus:border-gray-500 transition"
               required
             />
+          </div>
+
+          <div>
+            <label className="block text-xs text-gray-400 dark:text-gray-500 mb-1.5 font-medium">Time zone</label>
+            <input type="text" value={timezone} onChange={(e) => setTimezone(e.target.value)}
+              className="w-full bg-white dark:bg-gray-950 border border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-100 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-gray-400" required />
+            <p className="text-[11px] text-gray-400 mt-1">Use an IANA time zone, such as Asia/Shanghai.</p>
           </div>
 
           <button

@@ -15,11 +15,12 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import { updateTask } from "../services/api";
 import { CalendarDays, Columns3 } from "lucide-react";
+import { dateOnly, formatDateOnly, todayDateOnly } from "../utils/dateOnly";
 
 const COLUMNS = [
   { id: "todo",       label: "To Do",       color: "bg-gray-100 dark:bg-gray-900",     dot: "bg-gray-400"    },
   { id: "inprogress", label: "In Progress",  color: "bg-blue-50 dark:bg-blue-950/30",   dot: "bg-blue-400"    },
-  { id: "completed",  label: "Completed",    color: "bg-emerald-50 dark:bg-emerald-950/30", dot: "bg-emerald-400" },
+  { id: "done",  label: "Completed",    color: "bg-emerald-50 dark:bg-emerald-950/30", dot: "bg-emerald-400" },
 ];
 
 const PRIORITY_CONFIG = {
@@ -28,7 +29,7 @@ const PRIORITY_CONFIG = {
   low:    { color: "text-emerald-500", bg: "bg-emerald-50 dark:bg-emerald-900/20" },
 };
 
-function TaskCard({ task }) {
+function TaskCard({ task, timezone }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: task.id });
   const p = PRIORITY_CONFIG[task.priority || "medium"];
 
@@ -38,15 +39,9 @@ function TaskCard({ task }) {
     opacity: isDragging ? 0.4 : 1,
   };
 
-  const formatDate = (dateStr) => {
-    if (!dateStr) return null;
-    return new Date(dateStr).toLocaleDateString("en-GB", { day: "numeric", month: "short" });
-  };
-
   const isOverdue = (dateStr) => {
     if (!dateStr) return false;
-    const today = new Date(); today.setHours(0, 0, 0, 0);
-    return new Date(dateStr) < today;
+    return dateOnly(dateStr) < todayDateOnly(timezone);
   };
 
   return (
@@ -63,9 +58,9 @@ function TaskCard({ task }) {
           {task.priority || "medium"}
         </span>
         {task.due_date && (
-          <span className={`inline-flex items-center gap-1 text-xs ${isOverdue(task.due_date) && task.kanban_status !== "completed" ? "text-red-400" : "text-gray-400"}`}>
+          <span className={`inline-flex items-center gap-1 text-xs ${isOverdue(task.due_date) && task.kanban_status !== "done" ? "text-red-400" : "text-gray-400"}`}>
             <CalendarDays className="w-3 h-3" />
-            {formatDate(task.due_date)}
+            {formatDateOnly(task.due_date, { day: "numeric", month: "short" })}
           </span>
         )}
         {task.project && (
@@ -78,7 +73,7 @@ function TaskCard({ task }) {
   );
 }
 
-function Column({ column, tasks }) {
+function Column({ column, tasks, timezone }) {
   const { setNodeRef } = useSortable({ id: column.id });
 
   return (
@@ -103,7 +98,7 @@ function Column({ column, tasks }) {
             </div>
           ) : (
             tasks.map((task) => (
-              <TaskCard key={task.id} task={task} />
+              <TaskCard key={task.id} task={task} timezone={timezone} />
             ))
           )}
         </div>
@@ -112,8 +107,9 @@ function Column({ column, tasks }) {
   );
 }
 
-export default function Kanban({ tasks, setTasks }) {
+export default function Kanban({ tasks, onTasksChanged, timezone }) {
   const [activeTask, setActiveTask] = useState(null);
+  const [error, setError] = useState("");
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
@@ -122,7 +118,7 @@ export default function Kanban({ tasks, setTasks }) {
   // Use kanban_status to determine the column — not priority!
   const getColumnTasks = (columnId) => {
     return tasks.filter((t) => {
-      const ks = t.kanban_status || (t.status === "completed" ? "completed" : "todo");
+      const ks = t.kanban_status || (t.status === "completed" ? "done" : "todo");
       return ks === columnId;
     });
   };
@@ -130,7 +126,7 @@ export default function Kanban({ tasks, setTasks }) {
   const findTaskColumn = (taskId) => {
     const task = tasks.find((t) => t.id === taskId);
     if (!task) return null;
-    return task.kanban_status || (task.status === "completed" ? "completed" : "todo");
+    return task.kanban_status || (task.status === "completed" ? "done" : "todo");
   };
 
   const handleDragStart = ({ active }) => {
@@ -154,25 +150,18 @@ export default function Kanban({ tasks, setTasks }) {
     if (!task) return;
 
     // Update status based on the column — do NOT change priority!
-    const newStatus = targetColumn === "completed" ? "completed" : "pending";
-
-    // Optimistic update — only kanban_status and status change, priority stays the same
-    setTasks((prev) =>
-      prev.map((t) =>
-        t.id === activeId
-          ? { ...t, kanban_status: targetColumn, status: newStatus }
-          : t
-      )
-    );
-
-    // API — only kanban_status and status are sent, priority is omitted
-    await updateTask(activeId, {
+    const newStatus = targetColumn === "done" ? "completed" : "pending";
+    const result = await updateTask(activeId, {
       kanban_status: targetColumn,
       status: newStatus,
     });
+    if (result.success) {
+      setError("");
+      await onTasksChanged();
+    } else setError(result.message || "Could not move task.");
   };
 
-  const completedCount = tasks.filter((t) => (t.kanban_status || "todo") === "completed").length;
+  const completedCount = tasks.filter((t) => t.status === "completed").length;
   const progress = tasks.length > 0 ? Math.round((completedCount / tasks.length) * 100) : 0;
 
   return (
@@ -180,6 +169,7 @@ export default function Kanban({ tasks, setTasks }) {
       <div className="mb-6">
         <h2 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white">Kanban Board</h2>
         <p className="text-gray-400 text-sm mt-1">Drag &amp; drop tasks to change their status</p>
+        {error && <p role="alert" className="text-red-600 text-sm mt-2">{error}</p>}
 
         {tasks.length > 0 && (
           <div className="mt-3 flex items-center gap-4">
@@ -207,6 +197,7 @@ export default function Kanban({ tasks, setTasks }) {
                 key={column.id}
                 column={column}
                 tasks={getColumnTasks(column.id)}
+                timezone={timezone}
               />
             ))}
           </div>
