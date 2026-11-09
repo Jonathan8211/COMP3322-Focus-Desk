@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import Checklist from '../components/Checklist';
-import { getTask, updateTask } from '../services/api';
+import { getTask } from '../services/api';
+import { useTasks } from '../contexts/useTasks';
 
-export default function TaskDetail({ onTasksChanged }) {
+export default function TaskDetail() {
+  const { changeTask, loadAllTasks } = useTasks();
   const { id } = useParams();
   const [task, setTask] = useState(null);
   const [loadedId, setLoadedId] = useState(null);
@@ -32,17 +34,16 @@ export default function TaskDetail({ onTasksChanged }) {
 
   const onChecklistChanged = async () => {
     await loadTask();
-    await onTasksChanged();
+    await loadAllTasks();
   };
 
   const setTaskStatus = async (status) => {
     setSaving(true);
     setError('');
-    const result = await updateTask(id, { status });
+    const result = await changeTask(id, { status }, { skipChecklistPrompt: true });
     if (result.success) {
-      setTask(result.data);
+      await loadTask();
       setConfirmCompletion(false);
-      await onTasksChanged();
     } else setError(result.message || 'Could not update task.');
     setSaving(false);
   };

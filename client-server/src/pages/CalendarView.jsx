@@ -3,6 +3,7 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Link } from "react-router-dom";
 import ChecklistProgress from "../components/ChecklistProgress";
 import { dateOnly, daysFromToday, todayDateOnly } from "../utils/dateOnly";
+import { useTasks } from "../contexts/useTasks";
 
 const PRIORITY_COLOR = {
   high: "bg-red-100 dark:bg-red-900/20 text-red-600 border-red-200 dark:border-red-800",
@@ -10,7 +11,8 @@ const PRIORITY_COLOR = {
   low: "bg-emerald-100 dark:bg-emerald-900/20 text-emerald-600 border-emerald-200 dark:border-emerald-800",
 };
 
-export default function CalendarView({ tasks, timezone }) {
+export default function CalendarView({ timezone }) {
+  const { tasks } = useTasks();
   const [todayYear, todayMonth, todayDay] = todayDateOnly(timezone).split("-").map(Number);
   const today = new Date(todayYear, todayMonth - 1, todayDay);
   const [currentMonth, setCurrentMonth] = useState(new Date(today.getFullYear(), today.getMonth(), 1));
@@ -21,8 +23,8 @@ export default function CalendarView({ tasks, timezone }) {
   const firstDay = new Date(year, month, 1).getDay();
   const daysInMonth = new Date(year, month + 1, 0).getDate();
 
-  const prevMonth = () => setCurrentMonth(new Date(year, month - 1, 1));
-  const nextMonth = () => setCurrentMonth(new Date(year, month + 1, 1));
+  const prevMonth = () => { setSelectedDay(null); setCurrentMonth(new Date(year, month - 1, 1)); };
+  const nextMonth = () => { setSelectedDay(null); setCurrentMonth(new Date(year, month + 1, 1)); };
 
   const getTasksForDay = (day) => {
     return tasks.filter((t) => {
@@ -45,7 +47,7 @@ export default function CalendarView({ tasks, timezone }) {
     <div className="flex-1 p-4 md:p-8 max-w-4xl mx-auto w-full">
       <div className="mb-6">
         <h2 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-gray-100">Calendar</h2>
-        <p className="text-gray-400 dark:text-gray-500 text-sm mt-1">Tasks by due date</p>
+        <p className="text-gray-400 dark:text-gray-500 text-sm mt-1">Tasks by due date · {tasks.filter((task) => task.due_date).length} scheduled</p>
       </div>
 
       <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm dark:shadow-none p-5 mb-5">
@@ -81,6 +83,8 @@ export default function CalendarView({ tasks, timezone }) {
             return (
               <button
                 key={day}
+                data-date={`${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`}
+                aria-label={`${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}, ${dayTasks.length} tasks`}
                 onClick={() => setSelectedDay(selectedDay === day ? null : day)}
                 className={`relative aspect-square flex flex-col items-center justify-start pt-1.5 rounded-xl text-sm transition ${
                   isToday(day) ? "bg-gray-900 text-white" :
@@ -89,6 +93,7 @@ export default function CalendarView({ tasks, timezone }) {
                 }`}
               >
                 <span className="font-medium text-xs">{day}</span>
+                {dayTasks.length > 0 && <span className="text-[10px] leading-none">{dayTasks.length}</span>}
                 {dayTasks.length > 0 && (
                   <div className="flex gap-0.5 mt-0.5">
                     <div className={`w-1 h-1 rounded-full ${
@@ -133,7 +138,7 @@ export default function CalendarView({ tasks, timezone }) {
       {/* Upcoming tasks list */}
       {!selectedDay && (
         <div>
-          <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Upcoming Tasks</h3>
+          <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Dated open tasks</h3>
           {tasks.filter((t) => t.due_date && t.status !== "completed").length === 0 ? (
             <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm dark:shadow-none p-6 text-center">
               <p className="text-gray-400 dark:text-gray-500 text-sm">No upcoming tasks</p>
@@ -143,13 +148,12 @@ export default function CalendarView({ tasks, timezone }) {
               {tasks
                 .filter((t) => t.due_date && t.status !== "completed")
                 .sort((a, b) => dateOnly(a.due_date).localeCompare(dateOnly(b.due_date)))
-                .slice(0, 5)
                 .map((task) => {
                   const diff = daysFromToday(task.due_date, timezone);
                   return (
                     <div key={task.id} className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm dark:shadow-none px-4 py-3 flex items-center gap-3">
                       <div className={`w-2 h-2 rounded-full flex-shrink-0 ${diff < 0 ? "bg-red-400" : diff === 0 ? "bg-amber-400" : "bg-indigo-400"}`} />
-                      <span className="text-sm text-gray-800 dark:text-gray-100 flex-1">{task.title}</span>
+                      <Link to={`/tasks/${task.id}`} className="text-sm text-gray-800 dark:text-gray-100 flex-1 hover:underline">{task.title}</Link>
                       <span className={`text-xs font-medium ${diff < 0 ? "text-red-500" : diff === 0 ? "text-amber-500" : "text-gray-400 dark:text-gray-500"}`}>
                         {diff < 0 ? `${Math.abs(diff)}d overdue` : diff === 0 ? "Today" : `in ${diff}d`}
                       </span>

@@ -13,7 +13,7 @@ import Settings from "./pages/Settings";
 import Sidebar from "./components/Sidebar";
 import TaskDetail from "./pages/TaskDetail";
 import DailyJournal from "./pages/DailyJournal";
-import { updateTask, deleteTask, logoutUser } from "./services/api";
+import { logoutUser } from "./services/api";
 import { useTasks } from "./contexts/useTasks";
 import { useAuth } from "./contexts/useAuth";
 
@@ -24,7 +24,7 @@ function Credits() {
 export default function App() {
   const navigate = useNavigate();
   const { user, loading, signOut, updateUser } = useAuth();
-  const { tasks, stats, loading: tasksLoading, error: tasksError, loadAllTasks } = useTasks();
+  const { loading: tasksLoading, error: tasksError, loadAllTasks } = useTasks();
   const [logoutError, setLogoutError] = useState("");
   const [hasUnsavedText, setHasUnsavedText] = useState(false);
   const authenticated = Boolean(user);
@@ -39,28 +39,23 @@ export default function App() {
     setLogoutError("");
     navigate("/login");
   };
-  const toggle = async (task) => {
-    const result = await updateTask(task.id, { status: task.status === "completed" ? "pending" : "completed" });
-    if (result.success) await loadAllTasks();
-  };
-  const remove = async (id) => { const result = await deleteTask(id); if (result.success) await loadAllTasks(); };
   if (loading) return <div role="status" className="min-h-screen grid place-items-center text-gray-600">Loading FocusDesk…</div>;
   const protectedPage = (element) => authenticated ? element : <Navigate to="/login" replace />;
-  const layout = <div className="min-h-screen flex flex-col md:flex-row bg-gray-50"><Sidebar user={user} onLogout={logout} /><main className="min-w-0 flex-1">{logoutError && <p role="alert" className="p-3 text-red-600">{logoutError}</p>}{tasksError && <p role="alert" className="p-3 text-red-600">{tasksError}</p>}{tasksLoading && <p role="status" className="p-3 text-gray-500">Loading tasks…</p>}<Outlet /></main></div>;
+  const layout = <div className="min-h-screen flex flex-col md:flex-row bg-gray-50"><Sidebar user={user} onLogout={logout} /><main className="min-w-0 flex-1">{logoutError && <p role="alert" className="p-3 text-red-600">{logoutError}</p>}{tasksError && <div role="alert" className="flex flex-wrap items-center gap-3 p-3 text-red-600"><span>{tasksError}</span><button type="button" onClick={loadAllTasks} disabled={tasksLoading} className="rounded border border-red-300 px-3 py-1 text-sm disabled:opacity-50">Retry loading tasks</button></div>}{tasksLoading && <p role="status" className="p-3 text-gray-500">Loading tasks…</p>}<Outlet /></main></div>;
   return <Routes>
     <Route path="/login" element={authenticated ? <Navigate to="/dashboard" replace /> : <Login />} />
     <Route path="/register" element={authenticated ? <Navigate to="/dashboard" replace /> : <Register />} />
     <Route element={protectedPage(layout)}>
-      <Route path="/dashboard" element={<Dashboard tasks={tasks} stats={stats} onTasksChanged={loadAllTasks} showSummary />} />
-      <Route path="/tasks" element={<Dashboard tasks={tasks} stats={stats} onTasksChanged={loadAllTasks} />} />
-      <Route path="/tasks/:id" element={<TaskDetail onTasksChanged={loadAllTasks} />} />
-      <Route path="/projects" element={<Projects tasks={tasks} onTasksChanged={loadAllTasks} />} />
-      <Route path="/kanban" element={<Kanban tasks={tasks} onTasksChanged={loadAllTasks} timezone={user?.timezone} />} />
-      <Route path="/table" element={<TableView tasks={tasks} onTasksChanged={loadAllTasks} timezone={user?.timezone} />} />
-      <Route path="/completed" element={<Completed tasks={tasks} onToggle={toggle} onDelete={remove} />} />
-      <Route path="/calendar" element={<CalendarView tasks={tasks} timezone={user?.timezone} />} />
+      <Route path="/dashboard" element={<Dashboard showSummary />} />
+      <Route path="/tasks" element={<Dashboard />} />
+      <Route path="/tasks/:id" element={<TaskDetail />} />
+      <Route path="/projects" element={<Projects />} />
+      <Route path="/kanban" element={<Kanban timezone={user?.timezone} />} />
+      <Route path="/table" element={<TableView timezone={user?.timezone} />} />
+      <Route path="/completed" element={<Completed />} />
+      <Route path="/calendar" element={<CalendarView timezone={user?.timezone} />} />
       <Route path="/notes" element={<NotionPages onDirtyChange={setHasUnsavedText} />} />
-      <Route path="/journal" element={<DailyJournal timezone={user?.timezone} tasks={tasks} onDirtyChange={setHasUnsavedText} />} />
+      <Route path="/journal" element={<DailyJournal timezone={user?.timezone} onDirtyChange={setHasUnsavedText} />} />
       <Route path="/settings" element={<Settings user={user} onUserUpdated={updateUser} />} />
       <Route path="/credits" element={<Credits />} />
     </Route>

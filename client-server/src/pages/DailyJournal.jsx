@@ -3,11 +3,13 @@ import { DateTime } from 'luxon';
 import { useBeforeUnload, useBlocker } from 'react-router-dom';
 import { dateOnly, todayDateOnly } from '../utils/dateOnly';
 import { deleteDailyEntry, getDailyEntries, getDailyEntry, saveDailyEntry } from '../services/api';
+import { useTasks } from '../contexts/useTasks';
 
 const blank = { journal_text: '', reflection_text: '' };
 const sameText = (a, b) => a.journal_text === b.journal_text && a.reflection_text === b.reflection_text;
 
-export default function DailyJournal({ timezone = 'UTC', tasks = [], onDirtyChange }) {
+export default function DailyJournal({ timezone = 'UTC', onDirtyChange }) {
+  const { tasks } = useTasks();
   const [today, setToday] = useState(() => todayDateOnly(timezone));
   const [openedToday, setOpenedToday] = useState(() => todayDateOnly(timezone));
   const [selectedDate, setSelectedDate] = useState(() => todayDateOnly(timezone));

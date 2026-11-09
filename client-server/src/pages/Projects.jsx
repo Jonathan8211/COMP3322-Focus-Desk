@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import { getProjects, createProject, deleteProject, updateTask } from "../services/api";
+import { getProjects, createProject, deleteProject } from "../services/api";
+import { useTasks } from "../contexts/useTasks";
 import { Folder, Plus, X } from "lucide-react";
 import { Link } from "react-router-dom";
 import ChecklistProgress from "../components/ChecklistProgress";
@@ -12,7 +13,8 @@ const PRIORITY_COLOR = {
   low: "bg-emerald-50 dark:bg-emerald-900/20 text-emerald-500",
 };
 
-export default function Projects({ tasks, onTasksChanged }) {
+export default function Projects() {
+  const { tasks, changeTask, loadAllTasks } = useTasks();
   const [projects, setProjects] = useState([]);
   const [showForm, setShowForm] = useState(false);
   const [newName, setNewName] = useState("");
@@ -47,14 +49,13 @@ export default function Projects({ tasks, onTasksChanged }) {
     const res = await deleteProject(id);
     if (res.success) {
       setProjects((current) => current.filter((p) => p.id !== id));
-      await onTasksChanged();
+      await loadAllTasks();
     } else setError(res.message || "Could not delete project.");
   };
 
   const handleAssign = async (taskId, projectName) => {
-    const res = await updateTask(taskId, { project: projectName });
-    if (res.success) await onTasksChanged();
-    else setError(res.message || "Could not assign task.");
+    const res = await changeTask(taskId, { project: projectName });
+    if (!res.success) setError(res.message || "Could not assign task.");
   };
 
   const getProjectTasks = (name) => tasks.filter((t) => t.project === name);

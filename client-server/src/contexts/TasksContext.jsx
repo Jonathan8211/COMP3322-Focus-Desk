@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { getTasks, getTaskStats } from '../services/api';
+import { getTasks, getTaskStats, createTask, updateTask, deleteTask } from '../services/api';
 import { useAuth } from './useAuth';
 import { TasksContext } from './tasks-context';
 
@@ -44,6 +44,29 @@ export function TasksProvider({ children }) {
     }
   }, [userId]);
 
+  const mutateTask = useCallback(async (operation) => {
+    const result = await operation();
+    if (!result.success) return result;
+    const refreshed = await loadAllTasks();
+    return refreshed.success ? result : {
+      success: false,
+      changed: true,
+      message: `Task changed, but the latest tasks could not be loaded. ${refreshed.message}`,
+    };
+  }, [loadAllTasks]);
+
+  const addTask = useCallback((data) => mutateTask(() => createTask(data)), [mutateTask]);
+  const changeTask = useCallback((id, data, options = {}) => {
+    const task = tasks.find((item) => item.id === Number(id));
+    const finishing = data.status === 'completed' || data.kanban_status === 'done';
+    if (!options.skipChecklistPrompt && finishing && task?.status !== 'completed' && task?.checklist_total > task?.checklist_done &&
+      !window.confirm('This task has unfinished checklist items. Complete it anyway?')) {
+      return Promise.resolve({ success: false, cancelled: true });
+    }
+    return mutateTask(() => updateTask(id, data));
+  }, [mutateTask, tasks]);
+  const removeTask = useCallback((id) => mutateTask(() => deleteTask(id)), [mutateTask]);
+
   useEffect(() => {
     let active = true;
     if (userId) {
@@ -57,5 +80,5 @@ export function TasksProvider({ children }) {
     return () => { active = false; requestId.current += 1; };
   }, [userId, loadAllTasks]);
 
-  return <TasksContext.Provider value={{ tasks, stats, loading, error, loadAllTasks }}>{children}</TasksContext.Provider>;
+  return <TasksContext.Provider value={{ tasks, stats, loading, error, loadAllTasks, addTask, changeTask, removeTask }}>{children}</TasksContext.Provider>;
 }

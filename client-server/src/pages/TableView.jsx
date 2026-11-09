@@ -1,341 +1,81 @@
-import { useState, useMemo, useCallback } from "react";
-import {
-  useReactTable,
-  getCoreRowModel,
-  getSortedRowModel,
-  getFilteredRowModel,
-  flexRender,
-  createColumnHelper,
-} from "@tanstack/react-table";
-import { updateTask, deleteTask } from "../services/api";
-import useDebounce from "../hooks/useDebounce";
-import { dateOnly, formatDateOnly, todayDateOnly } from "../utils/dateOnly";
-import { Check, TriangleAlert, X, Search } from "lucide-react";
-import { Link } from "react-router-dom";
-import ChecklistProgress from "../components/ChecklistProgress";
+import { useState } from 'react';
+import { useReactTable, getCoreRowModel, getSortedRowModel, getFilteredRowModel, flexRender } from '@tanstack/react-table';
+import { Link } from 'react-router-dom';
+import ChecklistProgress from '../components/ChecklistProgress';
+import { useTasks } from '../contexts/useTasks';
+import useDebounce from '../hooks/useDebounce';
+import { dateOnly, formatDateOnly, todayDateOnly } from '../utils/dateOnly';
 
-const PRIORITY_CONFIG = {
-  high:   { label: "High",   color: "text-red-500",     bg: "bg-red-50 dark:bg-red-900/20"     },
-  medium: { label: "Medium", color: "text-amber-500",   bg: "bg-amber-50 dark:bg-amber-900/20" },
-  low:    { label: "Low",    color: "text-emerald-500", bg: "bg-emerald-50 dark:bg-emerald-900/20" },
-};
-
-const columnHelper = createColumnHelper();
-
-export default function TableView({ tasks, onTasksChanged, timezone }) {
+export default function TableView({ timezone = 'UTC' }) {
+  const { tasks, changeTask, removeTask } = useTasks();
   const [sorting, setSorting] = useState([]);
-  const [searchInput, setSearchInput] = useState("");
-  const [editingCell, setEditingCell] = useState(null); // { rowId, field }
-  const [editValue, setEditValue] = useState("");
-  const debouncedGlobalFilter = useDebounce(searchInput, 250);
+  const [searchInput, setSearchInput] = useState('');
+  const [editing, setEditing] = useState(null);
+  const [busyId, setBusyId] = useState(null);
+  const [error, setError] = useState('');
+  const filter = useDebounce(searchInput, 250);
 
-  const handleToggle = useCallback(async (task) => {
-    const status = task.status === "pending" ? "completed" : "pending";
-    const res = await updateTask(task.id, { status });
-    if (res.success) await onTasksChanged();
-  }, [onTasksChanged]);
-
-  const handleDelete = useCallback(async (id) => {
-    const res = await deleteTask(id);
-    if (res.success) await onTasksChanged();
-  }, [onTasksChanged]);
-
-  const startEdit = (rowId, field, value) => {
-    setEditingCell({ rowId, field });
-    setEditValue(value || "");
+  const update = async (task, data) => {
+    setBusyId(task.id);
+    const result = await changeTask(task.id, data);
+    setBusyId(null);
+    setError(result.success || result.cancelled ? '' : result.message || 'Could not update task.');
+    return result.success;
   };
+  const saveEdit = async (task) => {
+    if (!editing || busyId === task.id) return;
+    const value = editing.field === 'due_date' ? editing.value || null : editing.value.trim();
+    if (editing.field === 'title' && !value) { setError('Task title cannot be empty.'); return; }
+    if (await update(task, { [editing.field]: value })) setEditing(null);
+  };
+  const remove = async (task) => {
+    if (!window.confirm('Delete “' + task.title + '”?')) return;
+    setBusyId(task.id);
+    const result = await removeTask(task.id);
+    setBusyId(null);
+    setError(result.success ? '' : result.message || 'Could not delete task.');
+  };
+  const editField = (task, field) => setEditing({ id: task.id, field, value: field === 'due_date' ? dateOnly(task.due_date) : task.title });
+  const editor = (task, field) => <div className="flex items-center gap-1">
+    <input autoFocus type={field === 'due_date' ? 'date' : 'text'} aria-label={field === 'due_date' ? 'Edit due date' : 'Edit title'} value={editing.value} onChange={(event) => setEditing({ ...editing, value: event.target.value })} onKeyDown={(event) => { if (event.key === 'Enter') saveEdit(task); if (event.key === 'Escape') setEditing(null); }} className="min-w-28 rounded border px-2 py-1 text-sm" />
+    <button onClick={() => saveEdit(task)} disabled={busyId === task.id} className="rounded border px-2 py-1 text-xs">Save</button>
+    <button onClick={() => setEditing(null)} className="rounded border px-2 py-1 text-xs">Cancel</button>
+  </div>;
 
-  const saveEdit = useCallback(async (task) => {
-    if (!editingCell) return;
-    const { field } = editingCell;
-    const res = await updateTask(task.id, { [field]: editValue });
-    if (res.success) await onTasksChanged();
-    setEditingCell(null);
-  }, [editingCell, editValue, onTasksChanged]);
-
-  const handlePriority = useCallback(async (task, priority) => {
-    const res = await updateTask(task.id, { priority });
-    if (res.success) await onTasksChanged();
-  }, [onTasksChanged]);
-
-  const formatDate = (dateStr) => dateStr
-    ? formatDateOnly(dateStr, { day: "numeric", month: "short", year: "numeric" }) : "—";
-
-  const isOverdue = useCallback((dateStr, status) => {
-    if (!dateStr || status === "completed") return false;
-    return dateOnly(dateStr) < todayDateOnly(timezone);
-  }, [timezone]);
-
-  const columns = useMemo(() => [
-    // Status toggle
-    columnHelper.accessor("status", {
-      header: "",
-      size: 40,
-      cell: ({ row }) => (
-        <button
-          onClick={() => handleToggle(row.original)}
-          className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition mx-auto ${
-            row.original.status === "completed"
-              ? "bg-emerald-500 border-emerald-500"
-              : "border-gray-300 dark:border-gray-600 hover:border-gray-900"
-          }`}
-        >
-          {row.original.status === "completed" && <Check className="w-3 h-3 text-white" strokeWidth={3} />}
-        </button>
-      ),
-    }),
-
-    // Title
-    columnHelper.accessor("title", {
-      header: "Task",
-      size: 300,
-      cell: ({ row }) => {
-        const isEditing = editingCell?.rowId === row.id && editingCell?.field === "title";
-        return isEditing ? (
-          <input
-            autoFocus
-            value={editValue}
-            onChange={(e) => setEditValue(e.target.value)}
-            onBlur={() => saveEdit(row.original)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") saveEdit(row.original);
-              if (e.key === "Escape") setEditingCell(null);
-            }}
-            className="w-full bg-transparent border-b border-indigo-400 outline-none text-sm text-gray-800 dark:text-gray-100 py-0.5"
-          />
-        ) : (
-          <div className="flex flex-wrap items-center gap-2">
-            <span
-              onClick={() => startEdit(row.id, "title", row.original.title)}
-              className={`text-sm cursor-pointer truncate ${
-                row.original.status === "completed"
-                  ? "line-through text-gray-400"
-                  : "text-gray-800 dark:text-gray-100 hover:text-indigo-600"
-              }`}
-            >{row.original.title}</span>
-            <Link to={`/tasks/${row.original.id}`} className="text-xs text-indigo-600 hover:underline">Details</Link>
-            <ChecklistProgress task={row.original} />
-          </div>
-        );
-      },
-    }),
-
-    // Priority
-    columnHelper.accessor("priority", {
-      header: "Priority",
-      size: 120,
-      cell: ({ row }) => {
-        const p = PRIORITY_CONFIG[row.original.priority || "medium"];
-        return (
-          <select
-            value={row.original.priority || "medium"}
-            onChange={(e) => handlePriority(row.original, e.target.value)}
-            className={`text-xs px-2 py-1 rounded-lg border-0 outline-none cursor-pointer font-medium ${p.bg} ${p.color}`}
-          >
-            <option value="high">High</option>
-            <option value="medium">Medium</option>
-            <option value="low">Low</option>
-          </select>
-        );
-      },
-    }),
-
-    // Status badge
-    columnHelper.accessor("status", {
-      id: "statusBadge",
-      header: "Status",
-      size: 120,
-      cell: ({ row }) => (
-        <span className={`text-xs px-2 py-1 rounded-lg font-medium ${
-          row.original.status === "completed"
-            ? "bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600"
-            : "bg-amber-50 dark:bg-amber-900/20 text-amber-600"
-        }`}>
-          {row.original.status === "completed" ? "Completed" : "Pending"}
-        </span>
-      ),
-    }),
-
-    // Due date
-    columnHelper.accessor("due_date", {
-      header: "Due Date",
-      size: 140,
-      cell: ({ row }) => {
-        const isEditing = editingCell?.rowId === row.id && editingCell?.field === "due_date";
-        return isEditing ? (
-          <input
-            autoFocus
-            type="date"
-            value={editValue}
-            onChange={(e) => setEditValue(e.target.value)}
-            onBlur={() => saveEdit(row.original)}
-            className="text-xs bg-transparent border-b border-indigo-400 outline-none text-gray-800 dark:text-gray-100"
-          />
-        ) : (
-          <span
-            onClick={() => startEdit(row.id, "due_date", row.original.due_date?.split("T")[0] || "")}
-            className={`text-xs cursor-pointer ${
-              isOverdue(row.original.due_date, row.original.status)
-                ? "text-red-500 font-medium"
-                : "text-gray-500 dark:text-gray-400"
-            }`}
-          >
-            <span className="inline-flex items-center gap-1">
-              {formatDate(row.original.due_date)}
-              {isOverdue(row.original.due_date, row.original.status) && (
-                <TriangleAlert className="w-3 h-3" />
-              )}
-            </span>
-          </span>
-        );
-      },
-    }),
-
-    // Project
-    columnHelper.accessor("project", {
-      header: "Project",
-      size: 130,
-      cell: ({ row }) => (
-        <span className="text-xs text-indigo-500 dark:text-indigo-400">
-          {row.original.project || "—"}
-        </span>
-      ),
-    }),
-
-    // Created at
-    columnHelper.accessor("created_at", {
-      header: "Created",
-      size: 120,
-      cell: ({ row }) => (
-        <span className="text-xs text-gray-400">
-          {new Date(row.original.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
-        </span>
-      ),
-    }),
-
-    // Delete
-    columnHelper.display({
-      id: "actions",
-      header: "",
-      size: 40,
-      cell: ({ row }) => (
-        <button
-          onClick={() => handleDelete(row.original.id)}
-          className="text-gray-300 dark:text-gray-600 hover:text-red-400 transition text-sm opacity-0 group-hover/row:opacity-100"
-        >
-          <X className="w-4 h-4" />
-        </button>
-      ),
-    }),
-  ], [editingCell, editValue, handleDelete, handlePriority, handleToggle, isOverdue, saveEdit]);
+  const columns = [
+    { id: 'task', accessorKey: 'title', header: 'Task', size: 320, cell: ({ row }) => {
+      const task = row.original;
+      return editing?.id === task.id && editing.field === 'title' ? editor(task, 'title') : <div className="flex items-center gap-2">
+        <Link to={'/tasks/' + task.id} className="max-w-44 truncate text-sm text-gray-900 hover:underline">{task.title}</Link>
+        <ChecklistProgress task={task} />
+        <button onClick={() => editField(task, 'title')} aria-label={'Edit title of ' + task.title} className="rounded border px-2 py-1 text-xs text-indigo-700">Edit</button>
+      </div>;
+    } },
+    { id: 'status', accessorKey: 'status', header: 'Status', size: 130, cell: ({ row }) => {
+      const task = row.original;
+      return <button onClick={() => update(task, { status: task.status === 'completed' ? 'pending' : 'completed' })} disabled={busyId === task.id} aria-label={(task.status === 'completed' ? 'Reopen ' : 'Complete ') + task.title} className="rounded-lg border px-2 py-1 text-xs disabled:opacity-50">{task.status === 'completed' ? 'Completed' : 'Open'}</button>;
+    } },
+    { id: 'priority', accessorKey: 'priority', header: 'Priority', size: 120, cell: ({ row }) => <select aria-label={'Priority of ' + row.original.title} value={row.original.priority || 'medium'} disabled={busyId === row.original.id} onChange={(event) => update(row.original, { priority: event.target.value })} className="rounded-lg border bg-white px-2 py-1 text-xs"><option value="high">High</option><option value="medium">Medium</option><option value="low">Low</option></select> },
+    { id: 'due', accessorKey: 'due_date', header: 'Due Date', size: 190, cell: ({ row }) => {
+      const task = row.original;
+      const overdue = task.due_date && task.status !== 'completed' && dateOnly(task.due_date) < todayDateOnly(timezone);
+      return editing?.id === task.id && editing.field === 'due_date' ? editor(task, 'due_date') : <div className="flex items-center gap-2"><span className={'text-xs ' + (overdue ? 'text-red-600' : 'text-gray-600')}>{task.due_date ? formatDateOnly(task.due_date, { day: 'numeric', month: 'short', year: 'numeric' }) : '—'}</span><button onClick={() => editField(task, 'due_date')} aria-label={'Edit due date of ' + task.title} className="rounded border px-2 py-1 text-xs text-indigo-700">Edit</button></div>;
+    } },
+    { id: 'project', accessorKey: 'project', header: 'Project', size: 130, cell: ({ row }) => <span className="text-xs text-gray-600">{row.original.project || '—'}</span> },
+    { id: 'actions', header: 'Actions', size: 90, enableSorting: false, cell: ({ row }) => <button onClick={() => remove(row.original)} disabled={busyId === row.original.id} aria-label={'Delete ' + row.original.title} className="rounded border border-red-200 px-2 py-1 text-xs text-red-600 disabled:opacity-50">Delete</button> },
+  ];
 
   // eslint-disable-next-line react-hooks/incompatible-library
-  const table = useReactTable({
-    data: tasks,
-    columns,
-    state: { sorting, globalFilter: debouncedGlobalFilter },
-    onSortingChange: setSorting,
-    getCoreRowModel: getCoreRowModel(),
-    getSortedRowModel: getSortedRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
-  });
+  const table = useReactTable({ data: tasks, columns, getRowId: (task) => String(task.id), state: { sorting, globalFilter: filter }, onSortingChange: setSorting, getCoreRowModel: getCoreRowModel(), getSortedRowModel: getSortedRowModel(), getFilteredRowModel: getFilteredRowModel() });
 
-  const completedCount = tasks.filter((t) => t.status === "completed").length;
-
-  return (
-    <div className="flex-1 p-4 md:p-8 w-full">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
-        <div>
-          <h2 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white">Table View</h2>
-          <p className="text-gray-400 text-sm mt-1">
-            {tasks.length} tasks • {completedCount} completed
-          </p>
-        </div>
-
-        {/* Search */}
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-300" />
-          <input
-            type="text"
-            placeholder="Search tasks..."
-            value={searchInput}
-            onChange={(e) => setSearchInput(e.target.value)}
-            className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-100 rounded-xl pl-8 pr-4 py-2 text-sm outline-none focus:border-gray-400 shadow-sm w-48"
-          />
-        </div>
-      </div>
-
-      {/* Table */}
-      <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            {/* Head */}
-            <thead>
-              {table.getHeaderGroups().map((headerGroup) => (
-                <tr key={headerGroup.id} className="border-b border-gray-100 dark:border-gray-800">
-                  {headerGroup.headers.map((header) => (
-                    <th
-                      key={header.id}
-                      style={{ width: header.getSize() }}
-                      className="px-4 py-3 text-left"
-                    >
-                      {header.isPlaceholder ? null : (
-                        <div
-                          onClick={header.column.getToggleSortingHandler()}
-                          className={`flex items-center gap-1 text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider select-none ${
-                            header.column.getCanSort() ? "cursor-pointer hover:text-gray-600 dark:hover:text-gray-300" : ""
-                          }`}
-                        >
-                          {flexRender(header.column.columnDef.header, header.getContext())}
-                          {header.column.getIsSorted() === "asc" && " ↑"}
-                          {header.column.getIsSorted() === "desc" && " ↓"}
-                        </div>
-                      )}
-                    </th>
-                  ))}
-                </tr>
-              ))}
-            </thead>
-
-            {/* Body */}
-            <tbody>
-              {table.getRowModel().rows.length === 0 ? (
-                <tr>
-                  <td colSpan={columns.length} className="text-center py-16 text-gray-400 text-sm">
-                    {searchInput ? `No results for "${searchInput}"` : "No tasks yet"}
-                  </td>
-                </tr>
-              ) : (
-                table.getRowModel().rows.map((row) => (
-                  <tr
-                    key={row.id}
-                    className="group/row border-b border-gray-50 dark:border-gray-800/50 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
-                  >
-                    {row.getVisibleCells().map((cell) => (
-                      <td key={cell.id} className="px-4 py-3">
-                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                      </td>
-                    ))}
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Footer */}
-        {tasks.length > 0 && (
-          <div className="px-4 py-3 border-t border-gray-100 dark:border-gray-800 flex items-center justify-between">
-            <p className="text-xs text-gray-400">
-              {table.getFilteredRowModel().rows.length} of {tasks.length} tasks
-            </p>
-            <p className="text-xs text-gray-400">
-              Click a cell to edit • Click a header to sort
-            </p>
-          </div>
-        )}
-      </div>
+  return <section className="w-full min-w-0 p-4 md:p-8">
+    <div className="flex flex-wrap items-center justify-between gap-3"><div><h1 className="text-2xl font-bold text-gray-900 md:text-3xl">Table View</h1><p className="mt-1 text-sm text-gray-500">{tasks.length} tasks · {tasks.filter((task) => task.status === 'completed').length} completed</p></div><input aria-label="Search tasks" placeholder="Search tasks…" value={searchInput} onChange={(event) => setSearchInput(event.target.value)} className="w-full rounded-xl border px-3 py-2 text-sm sm:w-56" /></div>
+    {error && <p role="alert" className="mt-3 text-sm text-red-600">{error}</p>}
+    <div className="mt-5 max-w-full overflow-x-auto rounded-xl border border-gray-200 bg-white" aria-label="Scrollable task table">
+      <table className="min-w-[980px] w-full text-left"><thead><tr>{table.getHeaderGroups().flatMap((group) => group.headers).map((header) => <th key={header.id} style={{ width: header.getSize() }} className={'border-b bg-white px-3 py-3 text-xs font-semibold uppercase text-gray-500 ' + (header.column.id === 'actions' ? 'sticky right-0' : '')}>{header.isPlaceholder ? null : header.column.getCanSort() ? <button onClick={header.column.getToggleSortingHandler()} aria-label={'Sort by ' + header.column.columnDef.header} className="text-left">{flexRender(header.column.columnDef.header, header.getContext())}{header.column.getIsSorted() === 'asc' ? ' ↑' : header.column.getIsSorted() === 'desc' ? ' ↓' : ''}</button> : flexRender(header.column.columnDef.header, header.getContext())}</th>)}</tr></thead>
+        <tbody>{table.getRowModel().rows.length ? table.getRowModel().rows.map((row) => <tr key={row.id} className="border-b last:border-b-0">{row.getVisibleCells().map((cell) => <td key={cell.id} className={'bg-white px-3 py-3 ' + (cell.column.id === 'actions' ? 'sticky right-0 border-l' : '')}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</td>)}</tr>) : <tr><td colSpan={columns.length} className="p-10 text-center text-sm text-gray-500">{filter ? 'No matching tasks.' : 'No tasks yet.'}</td></tr>}</tbody>
+      </table>
     </div>
-  );
+    <p className="mt-3 text-xs text-gray-500">Showing {table.getRowModel().rows.length} of {tasks.length} tasks. Scroll the table to view every field.</p>
+  </section>;
 }

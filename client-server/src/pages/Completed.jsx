@@ -1,61 +1,38 @@
-import { Check, CalendarDays, Target, X } from "lucide-react";
-import { Link } from "react-router-dom";
-import ChecklistProgress from "../components/ChecklistProgress";
-import { formatDateOnly } from "../utils/dateOnly";
+import { useState } from 'react';
+import { Link } from 'react-router-dom';
+import { CalendarDays } from 'lucide-react';
+import ChecklistProgress from '../components/ChecklistProgress';
+import { useTasks } from '../contexts/useTasks';
+import { formatDateOnly } from '../utils/dateOnly';
 
-export default function Completed({ tasks, onToggle, onDelete }) {
-    const completedTasks = tasks.filter((t) => t.status === "completed");
-  
-    return (
-      <div className="flex-1 p-4 md:p-8 max-w-2xl mx-auto w-full">
-        <div className="mb-8">
-          <h2 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-gray-100">Completed</h2>
-          <p className="text-gray-400 dark:text-gray-500 text-sm mt-1">{completedTasks.length} tasks completed</p>
-        </div>
-  
-        {completedTasks.length === 0 ? (
-          <div className="text-center py-20">
-            <Target className="w-10 h-10 text-gray-300 dark:text-gray-600 mx-auto mb-3" strokeWidth={1.5} />
-            <p className="text-gray-400 dark:text-gray-500 text-sm">No completed tasks yet</p>
-          </div>
-        ) : (
-          <div className="space-y-2">
-            {completedTasks.map((task) => (
-              <div
-                key={task.id}
-                className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 px-4 py-4 flex items-start gap-3 group shadow-sm dark:shadow-none"
-              >
-                <button
-                  onClick={() => onToggle(task)}
-                  className="mt-0.5 w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 bg-emerald-500 border-emerald-500 transition"
-                >
-                  <Check className="w-3 h-3 text-white" strokeWidth={3} />
-                </button>
-  
-                <div className="flex-1 min-w-0">
-                  <Link to={`/tasks/${task.id}`} className="text-sm line-through text-gray-300 dark:text-gray-600 hover:underline">{task.title}</Link>
-                  <div className="flex flex-wrap items-center gap-2 mt-1">
-                    {task.due_date && (
-                      <span className="inline-flex items-center gap-1 text-xs text-gray-300 dark:text-gray-600">
-                        <CalendarDays className="w-3 h-3" />
-                        {formatDateOnly(task.due_date, { day: "numeric", month: "short", year: "numeric" })}
-                      </span>
-                    )}
-                  </div>
-                  <ChecklistProgress task={task} />
-                </div>
-  
-                <button
-                  onClick={() => onDelete(task.id)}
-                  className="text-gray-200 dark:text-gray-700 hover:text-red-400 transition opacity-0 group-hover:opacity-100 p-0.5"
-                  aria-label="Delete task"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-    );
-  }
+export default function Completed() {
+  const { tasks, changeTask, removeTask } = useTasks();
+  const [busyId, setBusyId] = useState(null);
+  const [error, setError] = useState('');
+  const completedTasks = tasks.filter((task) => task.status === 'completed');
+
+  const reopen = async (task) => {
+    setBusyId(task.id);
+    const result = await changeTask(task.id, { status: 'pending' });
+    setBusyId(null);
+    setError(result.success ? '' : result.message || 'Could not reopen task.');
+  };
+  const remove = async (task) => {
+    if (!window.confirm('Delete “' + task.title + '”?')) return;
+    setBusyId(task.id);
+    const result = await removeTask(task.id);
+    setBusyId(null);
+    setError(result.success ? '' : result.message || 'Could not delete task.');
+  };
+
+  return <section className="mx-auto w-full max-w-3xl p-4 md:p-8">
+    <h1 className="text-2xl font-bold text-gray-900 md:text-3xl">Completed</h1>
+    <p className="mt-1 text-sm text-gray-500">{completedTasks.length} tasks completed</p>
+    {error && <p role="alert" className="mt-3 text-sm text-red-600">{error}</p>}
+    {completedTasks.length === 0 ? <p className="mt-8 text-sm text-gray-500">No completed tasks yet.</p> : <div className="mt-6 space-y-2">{completedTasks.map((task) => <article key={task.id} className="flex min-w-0 flex-wrap items-center gap-3 rounded-xl border border-gray-200 bg-white p-4">
+      <div className="min-w-0 flex-1"><Link to={'/tasks/' + task.id} className="break-words text-sm text-gray-500 line-through hover:underline">{task.title}</Link><div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-gray-500">{task.due_date && <span className="inline-flex items-center gap-1"><CalendarDays size={12} />{formatDateOnly(task.due_date, { day: 'numeric', month: 'short', year: 'numeric' })}</span>}<ChecklistProgress task={task} /></div></div>
+      <button onClick={() => reopen(task)} disabled={busyId === task.id} aria-label={'Reopen ' + task.title} className="rounded-lg border border-indigo-200 px-3 py-2 text-sm text-indigo-700 disabled:opacity-50">Reopen</button>
+      <button onClick={() => remove(task)} disabled={busyId === task.id} aria-label={'Delete ' + task.title} className="rounded-lg border border-red-200 px-3 py-2 text-sm text-red-600 disabled:opacity-50">Delete</button>
+    </article>)}</div>}
+  </section>;
+}
