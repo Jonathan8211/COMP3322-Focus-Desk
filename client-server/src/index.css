@@ -1,7 +1,6 @@
 @import "tailwindcss";
 @import 'tippy.js/dist/tippy.css';
-
-@variant dark (&:where(.dark, .dark *));
+@import './tokens.css';
 
 /* Tiptap Editor Styles */
 .prose h1 { font-size: 1.75rem; font-weight: 700; margin: 1rem 0 0.5rem; color: #111827; }
@@ -17,11 +16,4 @@
 .prose pre code { background: transparent; color: inherit; padding: 0; }
 .tiptap p.is-editor-empty:first-child::before { content: attr(data-placeholder); color: #d1d5db; pointer-events: none; float: left; height: 0; }
 
-.dark .prose h1 { color: #f3f4f6; }
-.dark .prose h2 { color: #e5e7eb; }
-.dark .prose h3 { color: #d1d5db; }
-.dark .prose p,
-.dark .prose li { color: #d1d5db; }
-.dark .prose blockquote { border-left-color: #374151; color: #9ca3af; }
-.dark .prose code { background: #1f2937; color: #a5b4fc; }
-.dark .tiptap p.is-editor-empty:first-child::before { color: #6b7280; }
+.tiptap p.is-editor-empty:first-child::before { color: var(--fd-faint); }

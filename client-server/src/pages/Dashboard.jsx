@@ -4,7 +4,7 @@ import { Cell, Pie, PieChart, Tooltip } from 'recharts';
 import ChecklistProgress from '../components/ChecklistProgress';
 import { useTasks } from '../contexts/useTasks';
 
-const chartColors = { Open: '#6366f1', Completed: '#10b981' };
+const chartColors = { Open: 'var(--fd-chart-open)', Completed: 'var(--fd-chart-done)' };
 
 export default function Dashboard({ showSummary = false }) {
   const { tasks, stats, addTask, changeTask, removeTask } = useTasks();

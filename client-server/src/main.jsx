@@ -5,8 +5,9 @@ import './index.css'
 import App from './App.jsx'
 import { AuthProvider } from './contexts/AuthContext.jsx'
 import { TasksProvider } from './contexts/TasksContext.jsx'
+import { ThemeProvider } from './contexts/ThemeProvider.jsx'
 
-const router = createBrowserRouter([{ path: '/*', element: <AuthProvider><TasksProvider><App /></TasksProvider></AuthProvider> }])
+const router = createBrowserRouter([{ path: '/*', element: <ThemeProvider><AuthProvider><TasksProvider><App /></TasksProvider></AuthProvider></ThemeProvider> }])
 
 createRoot(document.getElementById('root')).render(
   <StrictMode><RouterProvider router={router} /></StrictMode>,

@@ -6,9 +6,9 @@ export default function BrandMark({ size = "md", className = "" }) {
 
   return (
     <div
-      className={`${box} bg-gray-900 dark:bg-white flex items-center justify-center ${className}`}
+      className={`${box} bg-gray-900 flex items-center justify-center ${className}`}
     >
-      <Sparkles className={`${icon} text-white dark:text-gray-900`} strokeWidth={1.75} />
+      <Sparkles className={`${icon} text-white`} strokeWidth={1.75} />
     </div>
   );
 }

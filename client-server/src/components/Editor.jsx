@@ -30,7 +30,7 @@ const ToolbarButton = ({ onClick, active, title, children }) => (
     onMouseDown={(e) => { e.preventDefault(); onClick(); }}
     title={title}
     className={`w-7 h-7 flex items-center justify-center rounded-md text-sm transition ${
-      active ? "bg-gray-900 dark:bg-blue-600 text-white" : "text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-100"
+      active ? "bg-gray-900 text-white" : "text-gray-500 hover:bg-gray-100 hover:text-gray-900"
     }`}
   >
     {children}
@@ -51,7 +51,7 @@ export default function Editor({ content, onChange, placeholder = "Start typing 
     onUpdate: ({ editor }) => onChange?.(editor.getHTML()),
     editorProps: {
       attributes: {
-        class: "outline-none min-h-[200px] prose prose-sm max-w-none text-gray-800 dark:text-gray-100",
+        class: "outline-none min-h-[200px] prose prose-sm max-w-none text-gray-800",
       },
     },
   });
@@ -65,7 +65,7 @@ export default function Editor({ content, onChange, placeholder = "Start typing 
   return (
     <div className="w-full">
       {/* Toolbar */}
-      <div className="flex items-center gap-0.5 flex-wrap border-b border-gray-100 dark:border-gray-800 pb-2 mb-3">
+      <div className="flex items-center gap-0.5 flex-wrap border-b border-gray-100 pb-2 mb-3">
         {/* Text style */}
         <ToolbarButton onClick={() => editor.chain().focus().toggleBold().run()} active={editor.isActive("bold")} title="Bold">
           <Bold className="w-3.5 h-3.5" />
@@ -80,7 +80,7 @@ export default function Editor({ content, onChange, placeholder = "Start typing 
           <Strikethrough className="w-3.5 h-3.5" />
         </ToolbarButton>
 
-        <div className="w-px h-5 bg-gray-200 dark:bg-gray-700 mx-1" />
+        <div className="w-px h-5 bg-gray-200 mx-1" />
 
         <ToolbarButton onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()} active={editor.isActive("heading", { level: 1 })} title="Heading 1">
           <Heading1 className="w-3.5 h-3.5" />
@@ -92,7 +92,7 @@ export default function Editor({ content, onChange, placeholder = "Start typing 
           <Heading3 className="w-3.5 h-3.5" />
         </ToolbarButton>
 
-        <div className="w-px h-5 bg-gray-200 dark:bg-gray-700 mx-1" />
+        <div className="w-px h-5 bg-gray-200 mx-1" />
 
         <ToolbarButton onClick={() => editor.chain().focus().toggleBulletList().run()} active={editor.isActive("bulletList")} title="Bullet List">
           <List className="w-3.5 h-3.5" />
@@ -107,7 +107,7 @@ export default function Editor({ content, onChange, placeholder = "Start typing 
           <Code className="w-3.5 h-3.5" />
         </ToolbarButton>
 
-        <div className="w-px h-5 bg-gray-200 dark:bg-gray-700 mx-1" />
+        <div className="w-px h-5 bg-gray-200 mx-1" />
 
         <ToolbarButton onClick={() => editor.chain().focus().setTextAlign("left").run()} active={editor.isActive({ textAlign: "left" })} title="Align Left">
           <AlignLeft className="w-3.5 h-3.5" />
@@ -119,7 +119,7 @@ export default function Editor({ content, onChange, placeholder = "Start typing 
           <AlignRight className="w-3.5 h-3.5" />
         </ToolbarButton>
 
-        <div className="w-px h-5 bg-gray-200 dark:bg-gray-700 mx-1" />
+        <div className="w-px h-5 bg-gray-200 mx-1" />
 
         <ToolbarButton onClick={() => editor.chain().focus().undo().run()} active={false} title="Undo">
           <Undo2 className="w-3.5 h-3.5" />

@@ -6,9 +6,9 @@ import { dateOnly, daysFromToday, todayDateOnly } from "../utils/dateOnly";
 import { useTasks } from "../contexts/useTasks";
 
 const PRIORITY_COLOR = {
-  high: "bg-red-100 dark:bg-red-900/20 text-red-600 border-red-200 dark:border-red-800",
-  medium: "bg-amber-100 dark:bg-amber-900/20 text-amber-600 border-amber-200 dark:border-amber-800",
-  low: "bg-emerald-100 dark:bg-emerald-900/20 text-emerald-600 border-emerald-200 dark:border-emerald-800",
+  high: "bg-red-100 text-red-600 border-red-200",
+  medium: "bg-amber-100 text-amber-600 border-amber-200",
+  low: "bg-emerald-100 text-emerald-600 border-emerald-200",
 };
 
 export default function CalendarView({ timezone }) {
@@ -46,18 +46,18 @@ export default function CalendarView({ timezone }) {
   return (
     <div className="flex-1 p-4 md:p-8 max-w-4xl mx-auto w-full">
       <div className="mb-6">
-        <h2 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-gray-100">Calendar</h2>
-        <p className="text-gray-400 dark:text-gray-500 text-sm mt-1">Tasks by due date · {tasks.filter((task) => task.due_date).length} scheduled</p>
+        <h2 className="text-2xl md:text-3xl font-bold text-gray-900">Calendar</h2>
+        <p className="text-gray-400 text-sm mt-1">Tasks by due date · {tasks.filter((task) => task.due_date).length} scheduled</p>
       </div>
 
-      <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm dark:shadow-none p-5 mb-5">
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 mb-5">
         {/* Month navigation */}
         <div className="flex items-center justify-between mb-5">
-          <button onClick={prevMonth} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 dark:text-gray-400 transition" aria-label="Previous month">
+          <button onClick={prevMonth} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-500 transition" aria-label="Previous month">
             <ChevronLeft className="w-4 h-4" />
           </button>
-          <h3 className="font-semibold text-gray-900 dark:text-gray-100 capitalize">{monthName}</h3>
-          <button onClick={nextMonth} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 dark:text-gray-400 transition" aria-label="Next month">
+          <h3 className="font-semibold text-gray-900 capitalize">{monthName}</h3>
+          <button onClick={nextMonth} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-500 transition" aria-label="Next month">
             <ChevronRight className="w-4 h-4" />
           </button>
         </div>
@@ -65,7 +65,7 @@ export default function CalendarView({ timezone }) {
         {/* Day headers */}
         <div className="grid grid-cols-7 mb-2">
           {dayNames.map((d) => (
-            <div key={d} className="text-center text-xs font-medium text-gray-400 dark:text-gray-500 py-1">{d}</div>
+            <div key={d} className="text-center text-xs font-medium text-gray-400 py-1">{d}</div>
           ))}
         </div>
 
@@ -88,8 +88,8 @@ export default function CalendarView({ timezone }) {
                 onClick={() => setSelectedDay(selectedDay === day ? null : day)}
                 className={`relative aspect-square flex flex-col items-center justify-start pt-1.5 rounded-xl text-sm transition ${
                   isToday(day) ? "bg-gray-900 text-white" :
-                  selectedDay === day ? "bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 ring-1 ring-indigo-200 dark:ring-indigo-800" :
-                  "hover:bg-gray-50 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
+                  selectedDay === day ? "bg-indigo-50 text-indigo-700 ring-1 ring-indigo-200" :
+                  "hover:bg-gray-50 text-gray-700"
                 }`}
               >
                 <span className="font-medium text-xs">{day}</span>
@@ -101,7 +101,7 @@ export default function CalendarView({ timezone }) {
                       allDone ? "bg-emerald-400" :
                       hasOverdue ? "bg-amber-400" : "bg-gray-300"
                     }`} />
-                    {dayTasks.length > 1 && <div className={`w-1 h-1 rounded-full ${isToday(day) ? "bg-white/60" : "bg-gray-200 dark:bg-gray-600"}`} />}
+                    {dayTasks.length > 1 && <div className={`w-1 h-1 rounded-full ${isToday(day) ? "bg-white/60" : "bg-gray-200"}`} />}
                   </div>
                 )}
               </button>
@@ -113,19 +113,19 @@ export default function CalendarView({ timezone }) {
       {/* Selected day tasks */}
       {selectedDay && (
         <div>
-          <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
+          <h3 className="text-sm font-semibold text-gray-700 mb-3">
             Tasks on {selectedDay} {currentMonth.toLocaleDateString("en-GB", { month: "long", year: "numeric" })}
           </h3>
           {selectedTasks.length === 0 ? (
-            <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm dark:shadow-none p-6 text-center">
-              <p className="text-gray-400 dark:text-gray-500 text-sm">No tasks on this day</p>
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 text-center">
+              <p className="text-gray-400 text-sm">No tasks on this day</p>
             </div>
           ) : (
             <div className="space-y-2">
               {selectedTasks.map((task) => (
-                <div key={task.id} className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm dark:shadow-none px-4 py-3 flex items-center gap-3">
+                <div key={task.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm px-4 py-3 flex items-center gap-3">
                   <div className={`w-2 h-2 rounded-full flex-shrink-0 ${task.status === "completed" ? "bg-emerald-400" : "bg-amber-400"}`} />
-                  <Link to={`/tasks/${task.id}`} className={`text-sm flex-1 ${task.status === "completed" ? "line-through text-gray-300 dark:text-gray-600" : "text-gray-800 dark:text-gray-100"}`}>{task.title}</Link>
+                  <Link to={`/tasks/${task.id}`} className={`text-sm flex-1 ${task.status === "completed" ? "line-through text-gray-300" : "text-gray-800"}`}>{task.title}</Link>
                   <ChecklistProgress task={task} />
                   <span className={`text-xs px-2 py-0.5 rounded-full border ${PRIORITY_COLOR[task.priority || "medium"]}`}>{task.priority || "medium"}</span>
                 </div>
@@ -138,10 +138,10 @@ export default function CalendarView({ timezone }) {
       {/* Upcoming tasks list */}
       {!selectedDay && (
         <div>
-          <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Dated open tasks</h3>
+          <h3 className="text-sm font-semibold text-gray-700 mb-3">Dated open tasks</h3>
           {tasks.filter((t) => t.due_date && t.status !== "completed").length === 0 ? (
-            <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm dark:shadow-none p-6 text-center">
-              <p className="text-gray-400 dark:text-gray-500 text-sm">No upcoming tasks</p>
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 text-center">
+              <p className="text-gray-400 text-sm">No upcoming tasks</p>
             </div>
           ) : (
             <div className="space-y-2">
@@ -151,10 +151,10 @@ export default function CalendarView({ timezone }) {
                 .map((task) => {
                   const diff = daysFromToday(task.due_date, timezone);
                   return (
-                    <div key={task.id} className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm dark:shadow-none px-4 py-3 flex items-center gap-3">
+                    <div key={task.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm px-4 py-3 flex items-center gap-3">
                       <div className={`w-2 h-2 rounded-full flex-shrink-0 ${diff < 0 ? "bg-red-400" : diff === 0 ? "bg-amber-400" : "bg-indigo-400"}`} />
-                      <Link to={`/tasks/${task.id}`} className="text-sm text-gray-800 dark:text-gray-100 flex-1 hover:underline">{task.title}</Link>
-                      <span className={`text-xs font-medium ${diff < 0 ? "text-red-500" : diff === 0 ? "text-amber-500" : "text-gray-400 dark:text-gray-500"}`}>
+                      <Link to={`/tasks/${task.id}`} className="text-sm text-gray-800 flex-1 hover:underline">{task.title}</Link>
+                      <span className={`text-xs font-medium ${diff < 0 ? "text-red-500" : diff === 0 ? "text-amber-500" : "text-gray-400"}`}>
                         {diff < 0 ? `${Math.abs(diff)}d overdue` : diff === 0 ? "Today" : `in ${diff}d`}
                       </span>
                     </div>

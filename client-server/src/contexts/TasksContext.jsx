@@ -2,11 +2,13 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { getTasks, getTaskStats, createTask, updateTask, deleteTask } from '../services/api';
 import { useAuth } from './useAuth';
 import { TasksContext } from './tasks-context';
+import { useTheme } from './useTheme';
 
 const emptyStats = { total: 0, pending: 0, completed: 0, overdue: 0, completionRate: 0 };
 
 export function TasksProvider({ children }) {
   const { user } = useAuth();
+  const { celebrate } = useTheme();
   const userId = user?.id;
   const requestId = useRef(0);
   const [tasks, setTasks] = useState([]);
@@ -56,15 +58,17 @@ export function TasksProvider({ children }) {
   }, [loadAllTasks]);
 
   const addTask = useCallback((data) => mutateTask(() => createTask(data)), [mutateTask]);
-  const changeTask = useCallback((id, data, options = {}) => {
+  const changeTask = useCallback(async (id, data, options = {}) => {
     const task = tasks.find((item) => item.id === Number(id));
     const finishing = data.status === 'completed' || data.kanban_status === 'done';
     if (!options.skipChecklistPrompt && finishing && task?.status !== 'completed' && task?.checklist_total > task?.checklist_done &&
       !window.confirm('This task has unfinished checklist items. Complete it anyway?')) {
-      return Promise.resolve({ success: false, cancelled: true });
+      return { success: false, cancelled: true };
     }
-    return mutateTask(() => updateTask(id, data));
-  }, [mutateTask, tasks]);
+    const result = await mutateTask(() => updateTask(id, data));
+    if (finishing && task?.status !== 'completed' && (result.success || result.changed)) celebrate();
+    return result;
+  }, [celebrate, mutateTask, tasks]);
   const removeTask = useCallback((id) => mutateTask(() => deleteTask(id)), [mutateTask]);
 
   useEffect(() => {
