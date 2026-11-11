@@ -8,6 +8,8 @@ playwright-report/
 test-results/
 *.log
 .DS_Store
+/certs/
+/backups/
 /docs/
 /internal/
 /proposal/

@@ -1,0 +1,5 @@
+services:
+  web:
+    volumes:
+      - ./infra/Caddyfile.self-signed:/etc/caddy/Caddyfile:ro
+      - ${TLS_CERT_DIR:-./certs}:/certs:ro
