@@ -9,6 +9,7 @@ services:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?Set MYSQL_ROOT_PASSWORD in .env}
     command:
       - --innodb-buffer-pool-size=128M
+      - --innodb-use-native-aio=OFF
       - --performance-schema=OFF
     volumes:
       - mysql_data:/var/lib/mysql
