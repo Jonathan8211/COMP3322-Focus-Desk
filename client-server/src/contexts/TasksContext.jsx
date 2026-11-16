@@ -11,6 +11,8 @@ export function TasksProvider({ children }) {
   const { celebrate } = useTheme();
   const userId = user?.id;
   const requestId = useRef(0);
+  const pendingChanges = useRef(new Set());
+  const completedLocally = useRef(new Set());
   const [tasks, setTasks] = useState([]);
   const [stats, setStats] = useState(emptyStats);
   const [loading, setLoading] = useState(false);
@@ -33,7 +35,11 @@ export function TasksProvider({ children }) {
       const summary = await getTaskStats();
       if (!summary.success) throw new Error(summary.message || 'Could not load task statistics.');
       if (currentRequest === requestId.current) {
-        setTasks([...new Map(all.map((task) => [task.id, task])).values()]);
+        const uniqueTasks = [...new Map(all.map((task) => [task.id, task])).values()];
+        for (const task of uniqueTasks) {
+          if (task.status !== 'completed') completedLocally.current.delete(task.id);
+        }
+        setTasks(uniqueTasks);
         setStats(summary.data);
         setError('');
       }
@@ -59,20 +65,38 @@ export function TasksProvider({ children }) {
 
   const addTask = useCallback((data) => mutateTask(() => createTask(data)), [mutateTask]);
   const changeTask = useCallback(async (id, data, options = {}) => {
+    const taskId = Number(id);
+    if (pendingChanges.current.has(taskId)) return { success: false, cancelled: true, message: 'This task is already being updated.' };
     const task = tasks.find((item) => item.id === Number(id));
     const finishing = data.status === 'completed' || data.kanban_status === 'done';
     if (!options.skipChecklistPrompt && finishing && task?.status !== 'completed' && task?.checklist_total > task?.checklist_done &&
       !window.confirm('This task has unfinished checklist items. Complete it anyway?')) {
       return { success: false, cancelled: true };
     }
-    const result = await mutateTask(() => updateTask(id, data));
-    if (finishing && task?.status !== 'completed' && (result.success || result.changed)) celebrate();
-    return result;
-  }, [celebrate, mutateTask, tasks]);
+    pendingChanges.current.add(taskId);
+    try {
+      const result = await updateTask(id, data);
+      if (!result.success) return result;
+      if (finishing && task && task.status !== 'completed' && result.data?.status === 'completed' && !completedLocally.current.has(taskId)) {
+        completedLocally.current.add(taskId);
+        celebrate();
+      }
+      if (!finishing && result.data?.status !== 'completed') completedLocally.current.delete(taskId);
+      const refreshed = await loadAllTasks();
+      return refreshed.success ? result : {
+        ...result,
+        success: false,
+        changed: true,
+        message: `Task changed, but the latest tasks could not be loaded. ${refreshed.message}`,
+      };
+    } finally { pendingChanges.current.delete(taskId); }
+  }, [celebrate, loadAllTasks, tasks]);
   const removeTask = useCallback((id) => mutateTask(() => deleteTask(id)), [mutateTask]);
 
   useEffect(() => {
     let active = true;
+    pendingChanges.current.clear();
+    completedLocally.current.clear();
     if (userId) {
       Promise.resolve().then(() => { if (active) loadAllTasks(); });
     } else {

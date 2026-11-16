@@ -7,7 +7,7 @@ import { AuthProvider } from './contexts/AuthContext.jsx'
 import { TasksProvider } from './contexts/TasksContext.jsx'
 import { ThemeProvider } from './contexts/ThemeProvider.jsx'
 
-const router = createBrowserRouter([{ path: '/*', element: <ThemeProvider><AuthProvider><TasksProvider><App /></TasksProvider></AuthProvider></ThemeProvider> }])
+const router = createBrowserRouter([{ path: '/*', element: <AuthProvider><ThemeProvider><TasksProvider><App /></TasksProvider></ThemeProvider></AuthProvider> }])
 
 createRoot(document.getElementById('root')).render(
   <StrictMode><RouterProvider router={router} /></StrictMode>,

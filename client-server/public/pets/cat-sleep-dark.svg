@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 112" role="img" aria-labelledby="title"><title id="title">Sleeping cat</title>
+  <path d="M41 82C18 67 25 42 46 41c17-1 17 14 8 19" fill="none" stroke="#f7e6db" stroke-width="7" stroke-linecap="round"/>
+  <path d="M35 70c1-22 25-36 53-32 22 3 43 17 43 38 0 17-18 27-48 27H62C44 103 34 91 35 70Z" fill="#b57565" stroke="#f7e6db" stroke-width="4" stroke-linejoin="round"/>
+  <path d="m88 59 5-26 17 12 15-10 6 24c8 11 5 27-8 34-11 7-27 6-36-3-10-10-9-23 1-31Z" fill="#b57565" stroke="#f7e6db" stroke-width="4" stroke-linejoin="round"/>
+  <path d="m97 45 1-5 6 4m13 0 6-4 1 6" fill="#e6a5ab"/>
+  <path d="m94 70 7 4 7-4m12 0 7 4 7-4" fill="none" stroke="#f7e6db" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="m109 79 5 3 5-3Z" fill="#f2c0b2"/><path d="M114 82v3m0 0c-4 3-7 3-9 0m9 0c4 3 7 3 9 0" fill="none" stroke="#f7e6db" stroke-width="2" stroke-linecap="round"/>
+  <path d="m131 27 15-1-14 14 15-1m-34-29 10-1-9 9 10-1" fill="none" stroke="#f7e6db" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

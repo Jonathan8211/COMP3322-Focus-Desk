@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 112" role="img" aria-labelledby="title"><title id="title">Cat batting a ball</title>
+  <g fill="none" stroke="#674a53" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M43 77C20 68 20 46 35 41c8-3 14 2 12 9"/>
+    <path d="M49 76c1-19 19-32 44-29 20 2 32 16 31 33-1 14-13 20-31 20H69c-14 0-21-8-20-24Z" fill="#f5bc9b"/>
+    <path d="M64 91v11h14l5-10" fill="#f5bc9b"/>
+    <path d="m102 56 2-21 15 10 14-9 5 22c8 12 5 27-7 34-11 7-24 5-32-4-9-10-8-24 3-32Z" fill="#f5bc9b"/>
+    <path d="M100 86c11-5 22-2 29 5l16-5 4 8-17 7c-15 4-27-1-32-9Z" fill="#f5bc9b"/>
+  </g>
+  <path d="m109 46 1-5 6 4m12 0 6-4 1 6" fill="#ef8d9b"/>
+  <path d="M108 69c3-4 7-4 10 0m12 0c3-4 7-4 10 0" fill="none" stroke="#473a45" stroke-width="3" stroke-linecap="round"/>
+  <path d="m120 77 4 3 4-3Z" fill="#b56573"/>
+  <path d="m105 80-10-2m10 7-10 2m34-8 11-2m-11 8 10 2" stroke="#674a53" stroke-width="2" stroke-linecap="round"/>
+  <path d="m143 74 4-6m3 9 7-2" stroke="#a13f6b" stroke-width="2.5" stroke-linecap="round"/>
+</svg>

@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 112" role="img" aria-labelledby="title"><title id="title">Goose swimming</title>
+  <path d="M34 59 18 53q2 15 13 24" fill="#fff5dc" stroke="#5e5b55" stroke-width="4" stroke-linejoin="round"/>
+  <path d="M24 72q7-22 36-22 27 0 48 19l6 14q-23 14-53 13-30-1-37-24Z" fill="#fff5dc" stroke="#5e5b55" stroke-width="4" stroke-linejoin="round"/>
+  <path d="M42 70q18-13 40 4 8 7 20 7-11 11-33 10-19-1-27-21Z" fill="#fffbec" stroke="#d9ccb0" stroke-width="3" stroke-linejoin="round"/>
+  <path d="M94 65q10-14 10-33 0-18 16-20 17-1 18 18 1 20-22 40" fill="#fff5dc" stroke="#5e5b55" stroke-width="4" stroke-linejoin="round"/>
+  <path d="M134 29q15-4 25 3-7 10-26 9Z" fill="#eba661" stroke="#775b49" stroke-width="3" stroke-linejoin="round"/>
+  <circle cx="124" cy="27" r="3.2" fill="#45413d"/>
+</svg>

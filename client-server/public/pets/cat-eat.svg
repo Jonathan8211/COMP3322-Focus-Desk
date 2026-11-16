@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 112" role="img" aria-labelledby="title"><title id="title">Cat eating from a bowl</title>
+  <g fill="none" stroke="#674a53" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M37 72C15 70 15 50 27 44c6-3 11 0 12 5"/>
+    <path d="M48 76c1-18 20-29 45-26 21 2 31 17 25 36-3 9-14 12-29 12H68c-14 0-21-7-20-22Z" fill="#f5bc9b"/>
+    <path d="M62 88v12h13l5-9m20-2 2 11h13l-3-13" fill="#f5bc9b"/>
+    <path d="m99 56 2-21 15 10 13-9 5 22c8 10 6 24-4 32-9 7-21 7-30-1-10-8-12-23-1-33Z" fill="#f5bc9b"/>
+  </g>
+  <path d="m105 47 1-5 6 4m10 0 5-4 1 6" fill="#ef8d9b"/>
+  <path d="m105 69 6 3 5-3m8 0 5 3 5-3" fill="none" stroke="#473a45" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="m115 78 4 3 4-3Z" fill="#b56573"/><path d="M119 81v5" stroke="#674a53" stroke-width="2.5" stroke-linecap="round"/>
+  <path d="M107 91h44l-5 15h-34Z" fill="#d5a476" stroke="#674a53" stroke-width="3.5" stroke-linejoin="round"/><path d="M104 91h50" stroke="#674a53" stroke-width="4" stroke-linecap="round"/>
+  <path d="m122 87 4 3 4-3" fill="none" stroke="#b56573" stroke-width="2"/>
+</svg>

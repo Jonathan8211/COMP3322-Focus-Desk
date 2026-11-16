@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 112" role="img" aria-labelledby="title"><title id="title">Celebrating cat</title>
+  <path d="M47 86C21 77 23 55 36 48c8-4 13 1 13 7" fill="none" stroke="#f7e6db" stroke-width="4" stroke-linecap="round"/>
+  <path d="M50 71c0-17 14-29 34-29s34 12 34 29v25H50Z" fill="#b57565" stroke="#f7e6db" stroke-width="4" stroke-linejoin="round"/>
+  <path d="M55 68 39 46l-8 7 16 29m66-14 16-22 8 7-16 29" fill="#b57565" stroke="#f7e6db" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M69 92v10h14V92m13 0v10h14V92" fill="#b57565" stroke="#f7e6db" stroke-width="4" stroke-linejoin="round"/>
+  <path d="m55 46 4-27 18 13c6-2 13-2 19 0l18-13 4 27c9 14 3 31-12 39-13 7-30 7-43 0-15-8-21-25-8-39Z" fill="#b57565" stroke="#f7e6db" stroke-width="4" stroke-linejoin="round"/>
+  <path d="m63 34 2-8 8 8m30 0 8-8 2 8" fill="#e6a5ab"/>
+  <path d="m64 57 7 5 7-5m22 0 7 5 7-5" fill="none" stroke="#f7e6db" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="m79 69 5 4 5-4Z" fill="#f2c0b2"/><path d="M84 73v5m0 0c-5 6-9 5-12 0m12 0c5 6 9 5 12 0" fill="none" stroke="#f7e6db" stroke-width="2.5" stroke-linecap="round"/>
+  <path d="m26 20 3 7 7 3-7 3-3 7-3-7-7-3 7-3Zm111 1 2 6 6 2-6 2-2 6-2-6-6-2 6-2Z" fill="#f3d789" stroke="#f7e6db" stroke-width="1.5" stroke-linejoin="round"/>
+</svg>

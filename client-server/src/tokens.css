@@ -73,11 +73,73 @@ button:disabled { cursor: not-allowed; }
 [data-theme] .prose blockquote { border-left-color: var(--fd-border); color: var(--fd-muted); }
 [data-theme] .prose code { background: var(--fd-soft); color: var(--fd-primary-ink); }
 [data-theme] .prose pre { background: var(--fd-soft); color: var(--fd-ink); }
-.pet-dock[data-state="celebrate"] .pet-art { animation: pet-hop .65s ease-in-out 2; }
 .pet-dock[data-state="celebrate"] .pet-sparkle { animation: pet-spark 1s ease-in-out 2; color: var(--fd-primary-ink); }
+.pet-dock .pet-track { position: relative; width: 100%; min-width: 0; height: 88px; margin-top: 8px; border-top: 1px solid var(--fd-border); overflow: hidden; }
+.pet-dock .pet-traveler { --pet-width: min(96px, 100%); position: absolute; top: 10px; left: calc((100% - var(--pet-width)) * var(--pet-position)); width: var(--pet-width); height: 72px; }
+.pet-dock .pet-facing-left { transform: scaleX(-1); }
+.pet-dock .pet-pose { position: relative; width: 100%; height: 72px; }
+.pet-dock .pet-art { display: block; width: 100%; height: 72px; object-fit: contain; }
+.pet-dock .pet-walk-step { position: absolute; inset: 0; opacity: 0; }
+.pet-dock[data-state="walk"] .pet-walk-step { animation: cat-frame-step 2.4s steps(1, end) infinite; }
+.pet-dock[data-pet="cat"][data-state="walk"] .pet-pose { animation: cat-step 2.4s ease-in-out infinite; }
+.pet-dock[data-pet="cat"][data-state="eat"] .pet-pose { animation: cat-nibble 1s ease-in-out infinite; transform-origin: 65% 70%; }
+.pet-dock[data-pet="cat"][data-state="play"] .pet-pose { animation: cat-play 1.4s ease-in-out infinite; transform-origin: 55% 80%; }
+.pet-dock[data-pet="cat"] .cat-toy { position: absolute; right: 3px; bottom: 3px; width: 14px; height: 14px; border: 2px solid #674a53; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #fff7e9 0 19%, #e77474 23% 100%); animation: cat-ball 1.4s ease-in-out infinite; }
+[data-theme="dark"] .pet-dock[data-pet="cat"] .cat-toy { border-color: #f7e6db; }
+.pet-dock[data-pet="cat"][data-state="celebrate"] .pet-pose { animation: pet-hop .65s ease-in-out 2; }
+.pet-dock[data-pet="dog"][data-state="walk"] .pet-pose { animation: dog-trot 2.4s ease-in-out infinite; }
+.pet-dock[data-pet="dog"][data-state="eat"] .pet-pose { animation: dog-chew 1.1s ease-in-out infinite; transform-origin: 70% 75%; }
+.pet-dock[data-pet="dog"][data-state="play"] .pet-pose { animation: dog-play 1.5s ease-in-out infinite; }
+.pet-dock[data-pet="dog"][data-state="sleep"] .pet-pose { animation: pet-breathe 3s ease-in-out infinite; }
+.pet-dock[data-pet="dog"][data-state="celebrate"] .pet-pose { animation: dog-celebrate .7s ease-in-out 2; }
+.pet-dock[data-pet="rabbit"][data-state="walk"] .pet-pose { animation: rabbit-hop 2.4s ease-in-out infinite; }
+.pet-dock[data-pet="rabbit"][data-state="eat"] .pet-pose { animation: rabbit-nibble .7s ease-in-out infinite; transform-origin: 70% 70%; }
+.pet-dock[data-pet="rabbit"][data-state="play"] .pet-pose { animation: rabbit-play 1.3s ease-in-out infinite; }
+.pet-dock[data-pet="rabbit"][data-state="sleep"] .pet-pose { animation: pet-breathe 3.2s ease-in-out infinite; }
+.pet-dock[data-pet="rabbit"][data-state="celebrate"] .pet-pose { animation: rabbit-hop .7s ease-in-out 2; }
+.pet-dock[data-pet="fox"][data-state="walk"] .pet-pose { animation: fox-trot 2.4s ease-in-out infinite; }
+.pet-dock[data-pet="fox"][data-state="eat"] .pet-pose { animation: fox-nibble 1s ease-in-out infinite; transform-origin: 68% 72%; }
+.pet-dock[data-pet="fox"][data-state="play"] .pet-pose { animation: fox-pounce 1.6s ease-in-out infinite; }
+.pet-dock[data-pet="fox"][data-state="sleep"] .pet-pose { animation: pet-breathe 3.4s ease-in-out infinite; }
+.pet-dock[data-pet="fox"][data-state="celebrate"] .pet-pose { animation: fox-pounce .7s ease-in-out 2; }
+.pet-dock[data-pet="goose"][data-state="walk"] .pet-pose { animation: goose-waddle 2.4s ease-in-out infinite; }
+.pet-dock[data-pet="goose"][data-state="eat"] .pet-pose { animation: goose-peck 1s ease-in-out infinite; transform-origin: 73% 76%; }
+.pet-dock[data-pet="goose"][data-state="play"] .pet-art { position: relative; z-index: 1; animation: goose-swim 2.2s ease-in-out infinite; }
+.pet-dock[data-pet="goose"][data-state="play"] .goose-pond { position: absolute; left: 2px; right: 2px; bottom: 0; height: 24px; border: 2px solid #6095a1; border-radius: 50%; background: #a8dce3; box-shadow: inset 0 5px 0 #d9f3f0; }
+.pet-dock[data-pet="goose"][data-state="play"] .goose-pond::before,
+.pet-dock[data-pet="goose"][data-state="play"] .goose-pond::after { content: ""; position: absolute; top: 10px; width: 21px; height: 7px; border-top: 2px solid #faffff; border-radius: 50%; animation: goose-ripple 2.2s ease-in-out infinite; }
+.pet-dock[data-pet="goose"][data-state="play"] .goose-pond::before { left: 7px; }
+.pet-dock[data-pet="goose"][data-state="play"] .goose-pond::after { right: 7px; animation-delay: -1.1s; }
+.pet-dock[data-pet="goose"][data-state="sleep"] .pet-pose { animation: pet-breathe 3.1s ease-in-out infinite; }
+.pet-dock[data-pet="goose"][data-state="celebrate"] .pet-pose { animation: goose-flap .6s ease-in-out 3; }
+.pet-dock[data-paused="true"] .pet-pose, .pet-dock[data-paused="true"] .pet-walk-step, .pet-dock[data-paused="true"] .cat-toy, .pet-dock[data-paused="true"] .pet-sparkle,
+.pet-dock[data-paused="true"] .goose-pond::before, .pet-dock[data-paused="true"] .goose-pond::after, .pet-dock[data-paused="true"][data-pet="goose"] .pet-art { animation-play-state: paused; }
 @keyframes pet-hop { 50% { transform: translateY(-8px) rotate(7deg); } }
 @keyframes pet-spark { 50% { transform: scale(1.5) rotate(25deg); opacity: .45; } }
+@keyframes cat-step { 50% { transform: translateY(-2px); } }
+@keyframes cat-frame-step { 0%, 49.9% { opacity: 0; } 50%, 100% { opacity: 1; } }
+@keyframes cat-nibble { 50% { transform: rotate(3deg) translateY(2px); } }
+@keyframes cat-play { 50% { transform: rotate(-3deg) translateY(-2px); } }
+@keyframes cat-ball { 50% { transform: translate(-8px, -7px) rotate(25deg); } }
+@keyframes dog-trot { 50% { transform: translateY(-2px) rotate(1deg); } }
+@keyframes dog-chew { 50% { transform: rotate(4deg) translateY(2px); } }
+@keyframes dog-play { 50% { transform: translateY(-5px) rotate(-4deg); } }
+@keyframes dog-celebrate { 50% { transform: translateY(-9px) rotate(5deg); } }
+@keyframes rabbit-hop { 50% { transform: translateY(-6px); } }
+@keyframes rabbit-nibble { 50% { transform: rotate(2deg) translateY(2px); } }
+@keyframes rabbit-play { 50% { transform: translateY(-8px) rotate(-5deg); } }
+@keyframes fox-trot { 50% { transform: translateY(-2px) rotate(-2deg); } }
+@keyframes fox-nibble { 50% { transform: rotate(3deg) translateY(2px); } }
+@keyframes fox-pounce { 50% { transform: translateY(-6px) rotate(5deg); } }
+@keyframes goose-waddle { 50% { transform: rotate(-3deg) translateY(-2px); } }
+@keyframes goose-peck { 50% { transform: rotate(5deg) translateY(2px); } }
+@keyframes goose-flap { 50% { transform: translateY(-4px) rotate(-3deg); } }
+@keyframes goose-swim { 50% { transform: translateY(-3px) rotate(-1deg); } }
+@keyframes goose-ripple { 50% { transform: scaleX(1.18); opacity: .35; } }
+@keyframes pet-breathe { 50% { transform: scale(1.025, .98); } }
 @media (prefers-reduced-motion: reduce) {
-  .pet-dock[data-state="celebrate"] .pet-art, .pet-dock[data-state="celebrate"] .pet-sparkle { animation: none; }
+  .pet-dock[data-state="celebrate"] .pet-sparkle,
+  .pet-dock .pet-traveler, .pet-dock .pet-pose, .pet-dock .pet-walk-step, .pet-dock .cat-toy,
+  .pet-dock[data-pet="goose"][data-state="play"] .pet-art, .pet-dock .goose-pond::before, .pet-dock .goose-pond::after { animation: none !important; }
   *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; animation-duration: .01ms !important; }
 }
