@@ -5,6 +5,16 @@ const validate = require('../middleware/validate');
 const validateQuery = require('../middleware/validateQuery');
 const validators = require('../validators/dailyEntry.validators');
 const service = require('../services/dailyEntryService');
+const mood = require('../services/moodService');
+const moodAttempts = new Map();
+function limitMood(req, res, next) {
+  const now = Date.now();
+  const attempts = (moodAttempts.get(req.user.id) || []).filter((time) => now - time < 60000);
+  if (attempts.length >= 3) return res.status(429).json({ success: false, message: 'Please wait before trying mood analysis again.' });
+  attempts.push(now);
+  moodAttempts.set(req.user.id, attempts);
+  next();
+}
 
 const validateDate = (req, res, next) => {
   const { error, value } = validators.dateParam.validate(req.params);
@@ -83,6 +93,25 @@ router.put('/:date', validateDate, validate(validators.saveEntry), async (req, r
 router.delete('/:date', validateDate, async (req, res, next) => {
   try { await service.remove(req.user.id, req.localDate); res.status(204).send(); }
   catch (error) { next(error); }
+});
+
+router.get('/:date/mood', validateDate, async (req, res, next) => {
+  try { res.json({ success: true, data: await mood.get(req.user.id, req.localDate) }); }
+  catch (error) { next(error); }
+});
+
+router.delete('/:date/mood', validateDate, async (req, res, next) => {
+  try { await mood.remove(req.user.id, req.localDate); res.status(204).send(); }
+  catch (error) { next(error); }
+});
+
+router.post('/:date/mood', validateDate, validate(validators.moodRequest), limitMood, async (req, res, next) => {
+  const controller = new AbortController();
+  const onClose = () => { if (!res.writableEnded) controller.abort(); };
+  res.on('close', onClose);
+  try { res.status(201).json({ success: true, data: await mood.analyze(req.user.id, req.localDate, req.body, controller.signal) }); }
+  catch (error) { if (!res.destroyed) next(error); }
+  finally { res.off('close', onClose); }
 });
 
 module.exports = router;

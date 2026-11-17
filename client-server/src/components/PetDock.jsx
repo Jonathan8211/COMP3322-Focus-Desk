@@ -1,16 +1,17 @@
 import { useEffect, useRef } from 'react';
 import { useTheme } from '../contexts/useTheme';
 import { walkFacingKeyframes, walkWaypoints } from '../contexts/catCycle';
+import { petResponseView } from '../contexts/petResponse';
 
 export default function PetDock() {
-  const { theme, pet, petVisible, celebrating, petState, completionCount } = useTheme();
+  const { theme, pet, petVisible, celebrating, petState, completionCount, moodAction } = useTheme();
   const travelerRef = useRef(null);
   const facingRef = useRef(null);
 
   useEffect(() => {
     const traveler = travelerRef.current;
     const facing = facingRef.current;
-    if (!petVisible || !petState.moving || !traveler || !facing) return;
+    if (!petVisible || moodAction || !petState.moving || !traveler || !facing) return;
     const frames = walkWaypoints(petState.position, petState.direction, petState.remainingMs)
       .map(({ offset, position }) => ({ offset, left: `calc((100% - var(--pet-width)) * ${position})` }));
     const turnFrames = walkFacingKeyframes(petState.position, petState.direction, petState.remainingMs)
@@ -18,14 +19,14 @@ export default function PetDock() {
     const travel = traveler.animate(frames, { duration: petState.remainingMs, easing: 'linear', fill: 'forwards' });
     const turn = facing.animate(turnFrames, { duration: petState.remainingMs, easing: 'linear', fill: 'forwards' });
     return () => { travel.cancel(); turn.cancel(); };
-  }, [pet, petVisible, petState.direction, petState.moving, petState.position, petState.remainingMs]);
+  }, [pet, petVisible, moodAction, petState.direction, petState.moving, petState.position, petState.remainingMs]);
 
   if (!petVisible) return null;
 
-  const state = petState.state;
+  const { comfort, moodCelebrating, state } = petResponseView(petState.state, celebrating, moodAction);
   const caption = <div className="min-w-0">
     <p className="text-sm font-semibold">Your focus companion</p>
-    <p className="text-xs text-gray-600">{celebrating ? 'Great work! Task completed.' : 'One step at a time.'}</p>
+    <p className="text-xs text-gray-600">{celebrating ? 'Great work! Task completed.' : comfort ? 'All your companions are here with you.' : moodCelebrating ? 'Your companion is celebrating with you.' : 'One step at a time.'}</p>
     <span className="sr-only" role="status" aria-live="polite" aria-atomic="true">{completionCount ? `${completionCount} task${completionCount === 1 ? '' : 's'} completed this visit.` : ''}</span>
   </div>;
 
@@ -38,6 +39,8 @@ export default function PetDock() {
       {celebrating && <span aria-hidden="true" className="pet-sparkle text-xl">✦</span>}
     </div>
     <div className="pet-track" aria-hidden="true">
+      {comfort && <div className="pet-comfort-row">{['cat', 'dog', 'rabbit', 'fox', 'goose'].map((friend) => <div className="pet-comfort-friend" key={friend}><img src={`/pets/${friend}-celebrate${friend === 'cat' && theme === 'dark' ? '-dark' : ''}.svg`} alt="" /><span className="pet-comfort-heart">♥</span></div>)}</div>}
+      {!comfort && <>
       <div ref={travelerRef} className="pet-traveler" data-moving={petState.moving} style={{
         '--pet-position': petState.position,
       }}>
@@ -50,6 +53,7 @@ export default function PetDock() {
           </div>
         </div>
       </div>
+      </>}
     </div>
   </div>;
 }

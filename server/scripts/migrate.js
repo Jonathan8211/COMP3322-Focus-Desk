@@ -3,7 +3,7 @@ const fs = require('node:fs/promises');
 const path = require('node:path');
 const mysql = require('mysql2/promise');
 
-const migrations = ['001_core.sql', '002_checklist.sql', '003_daily_entries.sql'];
+const migrations = ['001_core.sql', '002_checklist.sql', '003_daily_entries.sql', '004_daily_mood_assessments.sql'];
 const migrationsDir = path.join(__dirname, '..', 'migrations');
 
 async function migrate() {

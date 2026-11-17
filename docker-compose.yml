@@ -39,11 +39,19 @@ services:
       JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET in .env}
       COOKIE_SECURE: ${COOKIE_SECURE:-false}
       ALLOWED_ORIGIN: ${ALLOWED_ORIGIN:-http://localhost}
+      AI_PROVIDER: ${AI_PROVIDER:-deepseek}
+      DEEPSEEK_KEY_FILE: /run/secrets/deepseek_api_key
+      DEEPSEEK_MODEL: ${DEEPSEEK_MODEL:-deepseek-flash}
+      MOCK_MOOD_SCORE: ${MOCK_MOOD_SCORE:-65}
+      MOCK_MOOD_DELAY_MS: ${MOCK_MOOD_DELAY_MS:-0}
     depends_on:
       db:
         condition: service_healthy
     networks:
       - backend
+      - egress
+    secrets:
+      - deepseek_api_key
     healthcheck:
       test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3001/api/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
       interval: 10s
@@ -81,6 +89,7 @@ services:
 
 networks:
   frontend:
+  egress:
   backend:
     internal: true
 
@@ -88,3 +97,7 @@ volumes:
   mysql_data:
   caddy_data:
   caddy_config:
+
+secrets:
+  deepseek_api_key:
+    file: ${DEEPSEEK_KEY_FILE_HOST:-./infra/empty-deepseek-key}

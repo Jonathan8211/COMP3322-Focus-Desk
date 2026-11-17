@@ -56,6 +56,26 @@ test('speed and independent duration bounds are fixed', () => {
   assert.equal(maximum.cycle.getSnapshot().remainingMs, 15000);
 });
 
+test('mood response pauses walking while task completion takes priority and then resumes', () => {
+  const { clock, cycle } = setup([0.5]);
+  clock.advance(2000);
+  cycle.setMoodPaused(true);
+  const position = cycle.getSnapshot().position;
+  assert.equal(cycle.getSnapshot().moving, false);
+  assert.equal(clock.pending, 0);
+  cycle.celebrate();
+  assert.equal(cycle.getSnapshot().state, 'celebrate');
+  assert.equal(clock.pending, 1);
+  clock.advance(CAT_CELEBRATE_MS);
+  assert.equal(cycle.getSnapshot().state, 'walk');
+  assert.equal(cycle.getSnapshot().moving, false);
+  closeTo(cycle.getSnapshot().position, position);
+  assert.equal(clock.pending, 0);
+  cycle.setMoodPaused(false);
+  assert.equal(cycle.getSnapshot().moving, true);
+  assert.equal(clock.pending, 1);
+});
+
 test('every entry samples its own duration and every walk also samples direction', () => {
   const fixture = setup([0, 0, 0.1, 0.2, 1, 0.3, 0.4, 0, 0.5, 0.6, 1, 0.9]);
   const { clock, cycle } = fixture;

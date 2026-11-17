@@ -64,6 +64,7 @@ export function createCatCycle({ now = () => performance.now(), schedule = setTi
   let active = false;
   let pageVisible = true;
   let reducedMotion = false;
+  let moodPaused = false;
   let step = 0;
   let phase = sequence[step];
   let state = phase;
@@ -86,7 +87,7 @@ export function createCatCycle({ now = () => performance.now(), schedule = setTi
       position: reducedMotion ? 0 : position,
       direction,
       remainingMs: phaseRemaining,
-      moving: active && pageVisible && !reducedMotion && state === 'walk',
+      moving: active && pageVisible && !reducedMotion && !moodPaused && state === 'walk',
       paused: !active || !pageVisible,
       reducedMotion,
     };
@@ -108,7 +109,7 @@ export function createCatCycle({ now = () => performance.now(), schedule = setTi
   };
 
   const startClock = () => {
-    if (!active || !pageVisible || timer !== null || (reducedMotion && state !== 'celebrate')) return;
+    if (!active || !pageVisible || timer !== null || (moodPaused && state !== 'celebrate') || (reducedMotion && state !== 'celebrate')) return;
     startedAt = now();
     timer = schedule(advance, state === 'celebrate' ? celebrationRemaining : phaseRemaining);
   };
@@ -186,6 +187,13 @@ export function createCatCycle({ now = () => performance.now(), schedule = setTi
       publish();
       startClock();
       return true;
+    },
+    setMoodPaused(value) {
+      if (moodPaused === value) return;
+      stopClock();
+      moodPaused = value;
+      publish();
+      startClock();
     },
     stop() { reset(); active = false; publish(); },
   };

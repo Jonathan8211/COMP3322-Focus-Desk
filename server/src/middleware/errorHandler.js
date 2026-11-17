@@ -3,6 +3,10 @@ const errorHandler = (error, req, res, _next) => {
     return res.status(409).json({ success: false, message: 'This record already exists.' });
   }
   const status = Number(error.statusCode || error.status);
+  if (error.isModelError && status >= 500 && status < 600) {
+    console.warn(`[${new Date().toISOString()}] Mood analysis unavailable (${status})`);
+    return res.status(status).json({ success: false, message: error.message });
+  }
   if (status >= 400 && status < 500) {
     return res.status(status).json({ success: false, message: error.message || 'Request could not be completed.' });
   }

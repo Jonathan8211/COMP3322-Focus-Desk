@@ -81,3 +81,6 @@ export const getDailyEntries = (from, to) => request(`/daily-entries?${new URLSe
 export const getDailyEntry = (date) => request(`/daily-entries/${date}`);
 export const saveDailyEntry = (date, data) => request(`/daily-entries/${date}`, json('PUT', data));
 export const deleteDailyEntry = (date) => request(`/daily-entries/${date}`, { method: 'DELETE' });
+export const getDailyMood = (date) => request(`/daily-entries/${date}/mood`);
+export const analyzeDailyMood = (date, data, signal) => request(`/daily-entries/${date}/mood`, { ...json('POST', data), signal });
+export const deleteDailyMood = (date) => request(`/daily-entries/${date}/mood`, { method: 'DELETE' });

@@ -16,5 +16,11 @@ const saveEntry = Joi.object({
   reflection_text: Joi.string().max(20000).allow('').default(''),
 }).custom((value, helpers) => value.journal_text.trim() || value.reflection_text.trim()
   ? value : helpers.error('any.invalid')).messages({ 'any.invalid': 'Write in at least one field.' });
+const moodRequest = Joi.object({
+  entryId: Joi.number().integer().positive().required(),
+  contentVersion: Joi.string().hex().length(64).required(),
+  excerpt: Joi.string().min(1).max(12000),
+  consent: Joi.object({ provider: Joi.string().valid('deepseek').required(), approved: Joi.boolean().valid(true).required() }).required(),
+});
 
-module.exports = { dateParam, listQuery, saveEntry };
+module.exports = { dateParam, listQuery, saveEntry, moodRequest };
