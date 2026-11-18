@@ -66,7 +66,7 @@ export default function Kanban({ timezone = 'UTC' }) {
   };
 
   return <section className="w-full min-w-0 p-4 md:p-8">
-    <h1 className="text-2xl font-bold text-gray-900 md:text-3xl">Kanban Board</h1>
+    <h1 className="text-2xl font-bold text-gray-900 md:text-3xl">Board</h1>
     <p className="mt-1 text-sm text-gray-500">Drag a task or use its Move to menu.</p>
     {error && <p role="alert" className="mt-3 text-sm text-red-600">{error}</p>}
     <div className="mt-4 flex items-center gap-3"><div role="progressbar" aria-label="Tasks completed" aria-valuemin={0} aria-valuemax={100} aria-valuenow={stats.completionRate} className="h-2 flex-1 overflow-hidden rounded-full bg-gray-100"><div className="h-full bg-indigo-500" style={{ width: stats.completionRate + '%' }} /></div><span className="text-xs text-gray-500">{stats.completionRate}% complete</span></div>

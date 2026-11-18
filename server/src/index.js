@@ -37,6 +37,7 @@ app.use("/api/auth", require("./routes/authRoutes"));
 app.use("/api/tasks", require("./routes/taskRoutes"));
 app.use("/api/projects", require("./routes/projectRoutes"));
 app.use("/api/notes", require("./routes/noteRoutes"));
+app.use("/api/note-groups", require("./routes/noteGroupRoutes"));
 app.use("/api/daily-entries", require("./routes/dailyEntryRoutes"));
 app.use("/api/reviews", require("./routes/reviewRoutes"));
 app.use("/api/docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec, { customSiteTitle: "FocusDesk API" }));

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { DateTime } from 'luxon';
-import { useBeforeUnload, useBlocker } from 'react-router-dom';
+import { useBeforeUnload, useBlocker, useSearchParams } from 'react-router-dom';
 import { dateOnly, todayDateOnly } from '../utils/dateOnly';
 import { deleteDailyEntry, getDailyEntries, getDailyEntry, saveDailyEntry, getDailyMood, analyzeDailyMood, deleteDailyMood } from '../services/api';
 import { useTasks } from '../contexts/useTasks';
@@ -8,6 +8,8 @@ import { useTheme } from '../contexts/useTheme';
 
 const blank = { journal_text: '', reflection_text: '' };
 const sameText = (a, b) => a.journal_text === b.journal_text && a.reflection_text === b.reflection_text;
+const validLocalDate = (value) => /^\d{4}-\d{2}-\d{2}$/.test(value || '') && DateTime.fromISO(value, { zone: 'UTC' }).toISODate() === value;
+const historyStart = (end) => DateTime.fromISO(end).minus({ days: 365 }).toISODate();
 const moodFeeling = {
   difficult: 'Feeling overwhelmed',
   low: 'Feeling low',
@@ -17,11 +19,15 @@ const moodFeeling = {
 };
 
 export default function DailyJournal({ timezone = 'UTC', onDirtyChange }) {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const requestedDate = searchParams.get('date');
+  const initialDate = validLocalDate(requestedDate) ? requestedDate : todayDateOnly(timezone);
   const { tasks } = useTasks();
   const { playMoodResponse, clearMoodResponse } = useTheme();
   const [today, setToday] = useState(() => todayDateOnly(timezone));
   const [openedToday, setOpenedToday] = useState(() => todayDateOnly(timezone));
-  const [selectedDate, setSelectedDate] = useState(() => todayDateOnly(timezone));
+  const [selectedDate, setSelectedDate] = useState(initialDate);
+  const [historyEnd, setHistoryEnd] = useState(() => initialDate < todayDateOnly(timezone) ? initialDate : todayDateOnly(timezone));
   const [loadedDate, setLoadedDate] = useState(null);
   const [loadAttempt, setLoadAttempt] = useState(0);
   const [loadFailed, setLoadFailed] = useState(false);
@@ -112,10 +118,10 @@ export default function DailyJournal({ timezone = 'UTC', onDirtyChange }) {
     return () => { active = false; requestId.current += 1; };
   }, [selectedDate, loadAttempt]);
 
-  useEffect(() => { Promise.resolve().then(() => loadHistory(today)); }, [today, loadHistory]);
+  useEffect(() => { Promise.resolve().then(() => loadHistory(historyEnd)); }, [historyEnd, loadHistory]);
 
   const selectDate = (next) => {
-    if (!next) return false;
+    if (!validLocalDate(next)) return false;
     if (next === selectedDate) return true;
     if (dirty && !window.confirm('This journal entry has unsaved changes. Discard them and switch dates?')) return false;
     viewVersion.current += 1;
@@ -127,6 +133,10 @@ export default function DailyJournal({ timezone = 'UTC', onDirtyChange }) {
     setMoodBusy(false);
     requestId.current += 1;
     setSelectedDate(next);
+    const params = new URLSearchParams(searchParams);
+    params.set('date', next);
+    setSearchParams(params, { replace: true });
+    if (next < historyStart(historyEnd) || next > historyEnd) setHistoryEnd(next > today ? today : next);
     setLoadedDate(null);
     setLoadFailed(false);
     latestDraft.current = { ...blank };
@@ -172,7 +182,7 @@ export default function DailyJournal({ timezone = 'UTC', onDirtyChange }) {
     const result = await pending;
     if (pendingMutations.current.get(date) === pending) pendingMutations.current.delete(date);
     if (view !== viewVersion.current) {
-      if (result.success) await loadHistory(today);
+      if (result.success) await loadHistory(historyEnd);
       return;
     }
     if (!result.success) {
@@ -184,7 +194,7 @@ export default function DailyJournal({ timezone = 'UTC', onDirtyChange }) {
     setEntryMeta({ id: result.data.id, contentVersion: result.data.contentVersion });
     setSaved({ journal_text: result.data.journal_text, reflection_text: result.data.reflection_text });
     setStatus(sameText(latestDraft.current, payload) ? 'saved' : 'unsaved');
-    await loadHistory(today);
+    await loadHistory(historyEnd);
   };
 
   const remove = async () => {
@@ -202,7 +212,7 @@ export default function DailyJournal({ timezone = 'UTC', onDirtyChange }) {
     const result = await pending;
     if (pendingMutations.current.get(date) === pending) pendingMutations.current.delete(date);
     if (view !== viewVersion.current) {
-      if (result.success) await loadHistory(today);
+      if (result.success) await loadHistory(historyEnd);
       return;
     }
     if (!result.success) { setStatus('failed'); setError(result.message || 'Could not delete entry.'); return; }
@@ -214,7 +224,7 @@ export default function DailyJournal({ timezone = 'UTC', onDirtyChange }) {
     setMood(null);
     setStatus('saved');
     setError('');
-    await loadHistory(today);
+    await loadHistory(historyEnd);
   };
 
   const openMoodDialog = () => {
@@ -265,7 +275,7 @@ export default function DailyJournal({ timezone = 'UTC', onDirtyChange }) {
     {today !== openedToday && <div role="status" className="mt-4 rounded-xl border border-indigo-200 bg-indigo-50 p-3 text-sm">A new local day has started. Your selected date has stayed the same. <button onClick={() => { if (selectDate(today)) setOpenedToday(today); }} className="font-semibold text-indigo-700 underline">Open today</button></div>}
     <div className="mt-6 flex flex-wrap items-center gap-3">
       <label className="text-sm font-medium" htmlFor="journal-date">Date</label>
-      <input id="journal-date" type="date" value={selectedDate} onChange={(event) => selectDate(event.target.value)} className="rounded-lg border px-3 py-2" />
+      <input id="journal-date" type="date" value={selectedDate} onChange={(event) => { if (!selectDate(event.target.value)) event.target.value = selectedDate; }} className="rounded-lg border px-3 py-2" />
       <button onClick={() => { if (selectDate(today)) setOpenedToday(today); }} className="rounded-lg border px-3 py-2 text-sm">Today</button>
       <span aria-label="Save status" className={`text-sm ${status === 'failed' ? 'text-red-600' : 'text-gray-500'}`}>{({ saved: 'Saved', unsaved: 'Unsaved', saving: 'Saving…', failed: 'Save failed' })[status]}</span>
     </div>
@@ -303,7 +313,7 @@ export default function DailyJournal({ timezone = 'UTC', onDirtyChange }) {
       </div>
     </>}
     <section className="mt-8 rounded-2xl border bg-white p-5"><h2 className="text-lg font-semibold">Tasks due on this date</h2><p className="mt-1 text-sm text-gray-500">{dueTasks.length} tasks</p>{dueTasks.length > 0 && <ul className="mt-3 space-y-2 text-sm">{dueTasks.map((task) => <li key={task.id} className="flex gap-3"><span className={task.status === 'completed' ? 'text-emerald-600' : 'text-gray-700'}>{task.status === 'completed' ? 'Done' : 'Open'}</span><span>{task.title}</span></li>)}</ul>}</section>
-    <section className="mt-8"><h2 className="text-lg font-semibold">History</h2><p className="text-sm text-gray-500">Past 366 local dates</p>{historyError && <div className="mt-2"><p role="alert" className="text-sm text-red-600">{historyError}</p><button onClick={() => loadHistory(today)} className="mt-2 rounded-lg border px-3 py-2 text-sm">Retry history</button></div>}{!historyError && (history.length === 0 ? <p className="mt-3 text-sm text-gray-500">No saved entries in this range.</p> : <ul className="mt-3 space-y-2">{history.map((entry) => <li key={entry.id}><button onClick={() => selectDate(entry.local_date)} className="w-full rounded-lg border bg-white px-4 py-3 text-left text-sm hover:border-indigo-300"><span className="font-medium">{entry.local_date}</span><span className="ml-3 text-gray-500">{entry.journal_text.slice(0, 60) || entry.reflection_text.slice(0, 60)}</span></button></li>)}</ul>)}</section>
+    <section className="mt-8"><h2 className="text-lg font-semibold">History</h2><p className="text-sm text-gray-500">Saved entries from {historyStart(historyEnd)} to {historyEnd}</p><div className="mt-3 flex flex-wrap gap-2"><button type="button" onClick={() => setHistoryEnd(DateTime.fromISO(historyStart(historyEnd)).minus({ days: 1 }).toISODate())} className="min-h-11 rounded-lg border px-3 py-2 text-sm">Older entries</button><button type="button" onClick={() => setHistoryEnd(DateTime.fromISO(historyEnd).plus({ days: 366 }).toISODate() > today ? today : DateTime.fromISO(historyEnd).plus({ days: 366 }).toISODate())} disabled={historyEnd >= today} className="min-h-11 rounded-lg border px-3 py-2 text-sm disabled:opacity-50">Newer entries</button></div>{historyError && <div className="mt-2"><p role="alert" className="text-sm text-red-600">{historyError}</p><button onClick={() => loadHistory(historyEnd)} className="mt-2 rounded-lg border px-3 py-2 text-sm">Retry history</button></div>}{!historyError && (history.length === 0 ? <p className="mt-3 text-sm text-gray-500">No saved entries in this range.</p> : <ul className="mt-3 space-y-2">{history.map((entry) => <li key={entry.id}><button onClick={() => selectDate(entry.local_date)} className="w-full min-w-0 rounded-lg border bg-white px-4 py-3 text-left text-sm hover:border-indigo-300"><span className="font-medium">{entry.local_date}</span><span className="ml-3 break-words text-gray-500">{entry.journal_text.slice(0, 60) || entry.reflection_text.slice(0, 60)}</span></button></li>)}</ul>)}</section>
     {blocker.state === 'blocked' && <div role="dialog" aria-modal="true" aria-labelledby="unsaved-journal-title" className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4"><div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl"><h2 id="unsaved-journal-title" className="text-lg font-semibold">Leave without saving?</h2><p className="mt-2 text-sm text-gray-600">Your journal text has unsaved changes.</p><div className="mt-5 flex justify-end gap-3"><button onClick={() => blocker.reset()} className="rounded-lg border px-4 py-2 text-sm">Keep editing</button><button onClick={() => blocker.proceed()} className="rounded-lg bg-red-600 px-4 py-2 text-sm text-white">Discard changes</button></div></div></div>}
     {moodDialog && <div role="dialog" aria-modal="true" aria-labelledby="mood-consent-title" className="fixed inset-0 z-50 grid place-items-center bg-black/50 p-4"><div className="w-full max-w-lg rounded-2xl border bg-white p-5 shadow-xl"><h2 id="mood-consent-title" className="text-lg font-semibold">Review what you will send</h2><p className="mt-2 text-sm text-gray-600">This text from your saved journal for {selectedDate} will be sent to DeepSeek for a mood estimate. Reflection, other dates, notes, and tasks are excluded. You can shorten the selection to a passage from this journal.</p><textarea aria-label="Text to send to DeepSeek" value={moodExcerpt} maxLength={12000} onChange={(event) => setMoodExcerpt(event.target.value)} className="mt-3 max-h-48 min-h-32 w-full rounded-lg border p-3 text-sm" /><div className="mt-4 flex flex-wrap justify-end gap-3"><button type="button" autoFocus onClick={() => setMoodDialog(false)} className="rounded-lg border px-4 py-2 text-sm">Cancel, do not send</button><button type="button" onClick={confirmMood} disabled={!moodExcerpt.trim() || !saved.journal_text.includes(moodExcerpt)} className="rounded-lg bg-indigo-600 px-4 py-2 text-sm text-white disabled:opacity-50">Confirm and send</button></div></div></div>}
   </div>;

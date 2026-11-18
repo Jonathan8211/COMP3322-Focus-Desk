@@ -7,7 +7,7 @@ const navigation = [
   ["Dashboard", "/dashboard", LayoutDashboard],
   ["Tasks", "/tasks", ListTodo],
   ["Projects", "/projects", Folder],
-  ["Kanban", "/kanban", Columns3],
+  ["Board", "/kanban", Columns3],
   ["Table", "/table", Table2],
   ["Completed", "/completed", CheckCircle2],
   ["Calendar", "/calendar", CalendarDays],

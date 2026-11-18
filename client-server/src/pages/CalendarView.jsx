@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Link } from "react-router-dom";
 import ChecklistProgress from "../components/ChecklistProgress";
@@ -22,16 +22,24 @@ export default function CalendarView({ timezone }) {
 
   const firstDay = new Date(year, month, 1).getDay();
   const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const tasksByDate = useMemo(() => {
+    const grouped = new Map();
+    for (const task of tasks) {
+      const day = dateOnly(task.due_date);
+      if (!day) continue;
+      if (!grouped.has(day)) grouped.set(day, []);
+      grouped.get(day).push(task);
+    }
+    for (const dayTasks of grouped.values()) dayTasks.sort((a, b) =>
+      Number(a.status === 'completed') - Number(b.status === 'completed') || a.title.localeCompare(b.title));
+    return grouped;
+  }, [tasks]);
 
   const prevMonth = () => { setSelectedDay(null); setCurrentMonth(new Date(year, month - 1, 1)); };
   const nextMonth = () => { setSelectedDay(null); setCurrentMonth(new Date(year, month + 1, 1)); };
 
-  const getTasksForDay = (day) => {
-    return tasks.filter((t) => {
-      if (!t.due_date) return false;
-      return dateOnly(t.due_date) === `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
-    });
-  };
+  const dateKey = (day) => `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+  const getTasksForDay = (day) => tasksByDate.get(dateKey(day)) || [];
 
   const isToday = (day) => {
     return today.getFullYear() === year && today.getMonth() === month && today.getDate() === day;
@@ -50,14 +58,14 @@ export default function CalendarView({ timezone }) {
         <p className="text-gray-400 text-sm mt-1">Tasks by due date · {tasks.filter((task) => task.due_date).length} scheduled</p>
       </div>
 
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 mb-5">
+      <div className="min-w-0 bg-white rounded-2xl border border-gray-100 shadow-sm p-3 sm:p-5 mb-5">
         {/* Month navigation */}
         <div className="flex items-center justify-between mb-5">
-          <button onClick={prevMonth} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-500 transition" aria-label="Previous month">
+          <button onClick={prevMonth} className="w-11 h-11 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-500 transition" aria-label="Previous month">
             <ChevronLeft className="w-4 h-4" />
           </button>
           <h3 className="font-semibold text-gray-900 capitalize">{monthName}</h3>
-          <button onClick={nextMonth} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-500 transition" aria-label="Next month">
+          <button onClick={nextMonth} className="w-11 h-11 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-500 transition" aria-label="Next month">
             <ChevronRight className="w-4 h-4" />
           </button>
         </div>
@@ -70,40 +78,32 @@ export default function CalendarView({ timezone }) {
         </div>
 
         {/* Calendar grid */}
-        <div className="grid grid-cols-7 gap-1">
+        <div className="grid min-w-0 grid-cols-7 gap-1">
           {/* Empty cells */}
           {Array.from({ length: firstDay }).map((_, i) => <div key={`empty-${i}`} />)}
 
           {/* Days */}
           {Array.from({ length: daysInMonth }, (_, i) => i + 1).map((day) => {
             const dayTasks = getTasksForDay(day);
-            const hasOverdue = dayTasks.some((t) => t.status !== "completed");
-            const allDone = dayTasks.length > 0 && dayTasks.every((t) => t.status === "completed");
-
             return (
               <button
                 key={day}
-                data-date={`${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`}
-                aria-label={`${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}, ${dayTasks.length} tasks`}
+                data-date={dateKey(day)}
+                aria-label={`${dateKey(day)}, ${dayTasks.length} tasks${dayTasks.length ? ', show all' : ''}`}
+                aria-pressed={selectedDay === day}
                 onClick={() => setSelectedDay(selectedDay === day ? null : day)}
-                className={`relative aspect-square flex flex-col items-center justify-start pt-1.5 rounded-xl text-sm transition ${
+                className={`min-w-0 min-h-20 sm:min-h-32 overflow-hidden flex flex-col items-stretch gap-1 rounded-xl p-1 sm:p-2 text-left text-sm transition ${
                   isToday(day) ? "bg-gray-900 text-white" :
                   selectedDay === day ? "bg-indigo-50 text-indigo-700 ring-1 ring-indigo-200" :
                   "hover:bg-gray-50 text-gray-700"
                 }`}
               >
-                <span className="font-medium text-xs">{day}</span>
-                {dayTasks.length > 0 && <span className="text-[10px] leading-none">{dayTasks.length}</span>}
-                {dayTasks.length > 0 && (
-                  <div className="flex gap-0.5 mt-0.5">
-                    <div className={`w-1 h-1 rounded-full ${
-                      isToday(day) ? "bg-white" :
-                      allDone ? "bg-emerald-400" :
-                      hasOverdue ? "bg-amber-400" : "bg-gray-300"
-                    }`} />
-                    {dayTasks.length > 1 && <div className={`w-1 h-1 rounded-full ${isToday(day) ? "bg-white/60" : "bg-gray-200"}`} />}
-                  </div>
-                )}
+                <span className="font-semibold text-xs">{day}</span>
+                {dayTasks.slice(0, 3).map((task, index) => <span key={task.id} title={task.title} className={`${index > 0 ? 'hidden sm:block' : 'calendar-event-title'} w-full min-w-0 rounded px-0.5 text-[9px] leading-3 sm:truncate sm:leading-4 sm:text-xs ${isToday(day) ? 'bg-white/20 text-white' : task.status === 'completed' ? 'bg-emerald-50 text-emerald-800 line-through' : 'bg-indigo-50 text-indigo-800'}`}>
+                  {task.status === 'completed' ? '✓ ' : '• '}{task.title}
+                </span>)}
+                {dayTasks.length > 1 && <span className="block min-w-0 break-words text-center text-[9px] leading-3 sm:hidden">+{dayTasks.length - 1} more</span>}
+                {dayTasks.length > 3 && <span className="hidden min-w-0 truncate text-xs leading-4 sm:block">+{dayTasks.length - 3} more</span>}
               </button>
             );
           })}
@@ -123,9 +123,9 @@ export default function CalendarView({ timezone }) {
           ) : (
             <div className="space-y-2">
               {selectedTasks.map((task) => (
-                <div key={task.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm px-4 py-3 flex items-center gap-3">
+                <div key={task.id} className="min-w-0 bg-white rounded-2xl border border-gray-100 shadow-sm px-4 py-3 flex flex-wrap items-center gap-3">
                   <div className={`w-2 h-2 rounded-full flex-shrink-0 ${task.status === "completed" ? "bg-emerald-400" : "bg-amber-400"}`} />
-                  <Link to={`/tasks/${task.id}`} className={`text-sm flex-1 ${task.status === "completed" ? "line-through text-gray-300" : "text-gray-800"}`}>{task.title}</Link>
+                  <Link to={`/tasks/${task.id}`} className={`min-w-0 basis-40 break-words text-sm flex-1 ${task.status === "completed" ? "line-through text-gray-500" : "text-gray-800"}`}>{task.title}</Link>
                   <ChecklistProgress task={task} />
                   <span className={`text-xs px-2 py-0.5 rounded-full border ${PRIORITY_COLOR[task.priority || "medium"]}`}>{task.priority || "medium"}</span>
                 </div>
@@ -151,9 +151,9 @@ export default function CalendarView({ timezone }) {
                 .map((task) => {
                   const diff = daysFromToday(task.due_date, timezone);
                   return (
-                    <div key={task.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm px-4 py-3 flex items-center gap-3">
+                    <div key={task.id} className="min-w-0 bg-white rounded-2xl border border-gray-100 shadow-sm px-4 py-3 flex flex-wrap items-center gap-3">
                       <div className={`w-2 h-2 rounded-full flex-shrink-0 ${diff < 0 ? "bg-red-400" : diff === 0 ? "bg-amber-400" : "bg-indigo-400"}`} />
-                      <Link to={`/tasks/${task.id}`} className="text-sm text-gray-800 flex-1 hover:underline">{task.title}</Link>
+                      <Link to={`/tasks/${task.id}`} className="min-w-0 basis-40 break-words text-sm text-gray-800 flex-1 hover:underline">{task.title}</Link>
                       <span className={`text-xs font-medium ${diff < 0 ? "text-red-500" : diff === 0 ? "text-amber-500" : "text-gray-400"}`}>
                         {diff < 0 ? `${Math.abs(diff)}d overdue` : diff === 0 ? "Today" : `in ${diff}d`}
                       </span>
