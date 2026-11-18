@@ -13,6 +13,7 @@ import Settings from "./pages/Settings";
 import Sidebar from "./components/Sidebar";
 import TaskDetail from "./pages/TaskDetail";
 import DailyJournal from "./pages/DailyJournal";
+import Reviews from "./pages/Reviews";
 import { logoutUser } from "./services/api";
 import { useTasks } from "./contexts/useTasks";
 import { useAuth } from "./contexts/useAuth";
@@ -57,6 +58,7 @@ export default function App() {
       <Route path="/calendar" element={<CalendarView timezone={user?.timezone} />} />
       <Route path="/notes" element={<NotionPages onDirtyChange={setHasUnsavedText} />} />
       <Route path="/journal" element={<DailyJournal timezone={user?.timezone} onDirtyChange={setHasUnsavedText} />} />
+      <Route path="/reviews" element={<Reviews timezone={user?.timezone} />} />
       <Route path="/settings" element={<Settings user={user} onUserUpdated={updateUser} />} />
       <Route path="/credits" element={<Credits />} />
     </Route>

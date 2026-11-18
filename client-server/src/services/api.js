@@ -84,3 +84,6 @@ export const deleteDailyEntry = (date) => request(`/daily-entries/${date}`, { me
 export const getDailyMood = (date) => request(`/daily-entries/${date}/mood`);
 export const analyzeDailyMood = (date, data, signal) => request(`/daily-entries/${date}/mood`, { ...json('POST', data), signal });
 export const deleteDailyMood = (date) => request(`/daily-entries/${date}/mood`, { method: 'DELETE' });
+export const getReviewFacts = (period, anchor) => request(`/reviews/${period}?${new URLSearchParams({ anchor })}`);
+export const previewReview = (period, data) => request(`/reviews/${period}/preview`, json('POST', data));
+export const generateReview = (period, data, signal) => request(`/reviews/${period}/generate`, { ...json('POST', data), signal });

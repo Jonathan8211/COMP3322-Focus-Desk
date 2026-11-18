@@ -1,5 +1,5 @@
 import { NavLink } from "react-router-dom";
-import { LayoutDashboard, ListTodo, Folder, Columns3, Table2, CheckCircle2, CalendarDays, NotebookPen, BookOpen, Settings, LogOut, Info } from "lucide-react";
+import { LayoutDashboard, ListTodo, Folder, Columns3, Table2, CheckCircle2, CalendarDays, NotebookPen, BookOpen, ChartNoAxesCombined, Settings, LogOut, Info } from "lucide-react";
 import BrandMark from "./BrandMark";
 import ThemeSwitcher from "./ThemeSwitcher";
 
@@ -13,6 +13,7 @@ const navigation = [
   ["Calendar", "/calendar", CalendarDays],
   ["Notes", "/notes", NotebookPen],
   ["Journal", "/journal", BookOpen],
+  ["Reviews", "/reviews", ChartNoAxesCombined],
   ["Settings", "/settings", Settings],
   ["Credits", "/credits", Info],
 ];

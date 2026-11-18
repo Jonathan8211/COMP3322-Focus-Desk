@@ -142,9 +142,15 @@ const updateTask = async (req, res, next) => {
       );
       const [[updated]] = await connection.query('SELECT * FROM tasks WHERE id = ? AND user_id = ?', [taskId, userId]);
       let nextOccurrence = null;
-      if (current.status !== 'completed' && updated.status === 'completed' && updated.recurrence !== 'none') {
-        const timezone = await getTimezone(connection, userId);
-        nextOccurrence = await createNextOccurrence(connection, updated, timezone);
+      if (current.status === 'pending' && updated.status === 'completed') {
+        await connection.query(
+          'INSERT INTO task_completion_events (user_id, task_id, completed_at) VALUES (?, ?, UTC_TIMESTAMP(6))',
+          [userId, taskId]
+        );
+        if (updated.recurrence !== 'none') {
+          const timezone = await getTimezone(connection, userId);
+          nextOccurrence = await createNextOccurrence(connection, updated, timezone);
+        }
       }
       return { updated, nextOccurrence };
     });

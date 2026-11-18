@@ -44,6 +44,7 @@ services:
       DEEPSEEK_MODEL: ${DEEPSEEK_MODEL:-deepseek-flash}
       MOCK_MOOD_SCORE: ${MOCK_MOOD_SCORE:-65}
       MOCK_MOOD_DELAY_MS: ${MOCK_MOOD_DELAY_MS:-0}
+      MOCK_REVIEW_MODE: ${MOCK_REVIEW_MODE:-success}
     depends_on:
       db:
         condition: service_healthy
