@@ -6,23 +6,38 @@ Organize work into projects, break tasks into checklists, and see what matters i
 
 Our aim is to make everyday planning feel clear, calm, and personal.
 
-## Run FocusDesk with Docker
+## Open FocusDesk
 
-The web app, API, and MySQL run in separate containers. Docker Engine with the Compose plugin is required; no Node.js or MySQL installation is needed on the host. MySQL is available only inside the Compose network.
+[Open the deployed FocusDesk](https://c3322-pg23.cs.hku.hk). Connect to HKUVPN before opening the school server. The site uses a self-signed HTTPS certificate because the school does not provide a publicly trusted certificate. Your browser may warn that the certificate is not trusted; verify the server address and certificate with your course-provided details before proceeding.
 
-1. Copy `.env.example` to `.env`. Set strong, distinct values for `DB_PASSWORD`, `MYSQL_ROOT_PASSWORD`, and `JWT_SECRET`. Keep `.env` private. Leave `PORT=3001` because the web proxy uses that internal API port.
-2. For HTTP, set `WEB_PORT=80`, `PUBLIC_SITE_ADDRESS=:80`, `COOKIE_SECURE=false`, and `ALLOWED_ORIGIN` to the exact browser origin, such as `http://localhost` for local use or `http://<your-server-host>` after a host is assigned. Keep `COMPOSE_FILE=docker-compose.yml`.
-3. From the repository root, run:
+## Rebuild FocusDesk from GitHub
+
+The web app, API, and MySQL run in separate containers. Install Docker Engine with the Compose plugin on the target host; no host Node.js or MySQL installation is needed. MySQL is available only inside the Compose network.
+
+1. Get the current source and prepare private configuration:
 
    ```sh
-   docker compose up -d --build
-   docker compose ps
-   curl http://localhost/api/health
+   git clone https://github.com/Jonathan8211/COMP3322-Focus-Desk.git
+   cd COMP3322-Focus-Desk
+   cp .env.example .env
    ```
 
-Open `http://localhost` locally, or `http://<your-server-host>` when installed on a server. Replace the host placeholder only after its address is confirmed. If port 80 is in use for a local test, set both `WEB_PORT` and `PUBLIC_SITE_ADDRESS` to the chosen port, for example `WEB_PORT=18080` and `PUBLIC_SITE_ADDRESS=:18080`, then open `http://localhost:18080`.
+2. Edit `.env` with strong, distinct `DB_PASSWORD`, `MYSQL_ROOT_PASSWORD`, and `JWT_SECRET` values. To use the AI mood estimate and weekly/monthly reviews, set `AI_PROVIDER=deepseek` and `DEEPSEEK_KEY_FILE_HOST=./.env.deepseek-key`, then place the key as the only line of that ignored file. For the deployed site, set `ALLOWED_ORIGIN=https://c3322-pg23.cs.hku.hk`; use the exact browser origin for another host. Keep `.env` and `.env.deepseek-key` private; neither belongs in Git. Leave `PORT=3001` because the web proxy uses that internal API port.
+3. For self-signed HTTPS, set `COMPOSE_FILE=docker-compose.yml:docker-compose.https.yml`, `WEB_PORT=443`, `PUBLIC_SITE_ADDRESS=:443`, and `COOKIE_SECURE=true` in `.env`. Place the matching `server.crt` and `server.key` in the ignored `certs/` directory. Set the certificate's host name or IP address to match the browser URL. When reusing a private `.env`, confirm that `DEEPSEEK_KEY_FILE_HOST=./.env.deepseek-key` and `TLS_CERT_DIR=./certs` match the copied files. If using HTTP instead, keep `COMPOSE_FILE=docker-compose.yml`, set `WEB_PORT=80`, `PUBLIC_SITE_ADDRESS=:80`, and `COOKIE_SECURE=false`. HTTP does not encrypt passwords or session traffic.
+4. Restrict private file permissions and start the stack from the repository root:
 
-The first start creates the database and applies versioned migrations before the API starts. `docker compose ps` should show all three services as healthy. The API health URL is `/api/health`; browser routes such as `/tasks` and `/journal` are served by the web container.
+   ```sh
+   chmod 600 .env
+   test ! -f .env.deepseek-key || chmod 600 .env.deepseek-key
+   test ! -f certs/server.key || chmod 600 certs/server.key
+   docker compose up -d --build
+   docker compose ps
+   ```
+
+For an HTTP-only local run without an AI key, set `AI_PROVIDER=mock` and `DEEPSEEK_KEY_FILE_HOST=./infra/empty-deepseek-key`, then omit the `.env.deepseek-key` and certificate steps. If port 80 is in use, set both `WEB_PORT` and `PUBLIC_SITE_ADDRESS` to the chosen port, for example `WEB_PORT=18080` and `PUBLIC_SITE_ADDRESS=:18080`, then open `http://localhost:18080`.
+
+The first start creates the database and applies versioned migrations before the API starts. `docker compose ps` should show all three services as healthy. The API health URL is `/api/health`; browser routes such as `/tasks`, `/journal`, and `/reviews` are served by the web container.
+For the deployed HTTPS host, verify the API with `curl --cacert certs/server.crt https://c3322-pg23.cs.hku.hk/api/health` after confirming that the certificate matches the host.
 
 ### Self-signed HTTPS
 
